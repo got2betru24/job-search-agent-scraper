@@ -1,0 +1,44 @@
+Discovering locations/departments for 3 ashby source(s)...
+This may take a minute depending on the number of jobs...
+  Fetching Ashby...
+  Fetching Flock Safety...
+  Fetching Paxos...
+
+======================================================================
+  DISCOVERY REPORT — ASHBY
+======================================================================
+
+  Ashby (AshbyExtractor) — 0 jobs
+  URL: https://www.ashbyhq.com/careers?ashby_department_id=d22def71-84b4-4837
+  ERROR: Could not extract Ashby slug from URL: https://www.ashbyhq.com/careers?ashby_department_id=d22def71-84b4-4837-b73f-854a46fdb3fc&ashby_employment_type=FullTime
+
+  Flock Safety (AshbyExtractor) — 0 jobs
+  URL: https://www.flocksafety.com/careers/positions
+  ERROR: Could not extract Ashby slug from URL: https://www.flocksafety.com/careers/positions
+
+  Paxos (AshbyExtractor) — 0 jobs
+  URL: https://www.paxos.com/jobs
+  ERROR: Could not extract Ashby slug from URL: https://www.paxos.com/jobs
+
+======================================================================
+  CONSOLIDATED — ALL ASHBY SOURCES
+======================================================================
+
+  ALL UNIQUE LOCATIONS (0):
+
+  ALL UNIQUE DEPARTMENTS (0):
+
+======================================================================
+  SUGGESTED .env ADDITIONS
+======================================================================
+
+  Review the lists above and add relevant keywords to your .env:
+
+  TARGET_LOCATIONS=remote,utah,salt lake,lehi,provo,orem,
+                   american fork,draper,south jordan,ut -,us - remote,
+                   <add more from the list above>
+
+  TARGET_DEPARTMENTS=engineering,product,data science,analytics,
+                     platform,technology,
+                     <add more from the list above>
+

@@ -1,0 +1,37 @@
+services:
+  ###################################################
+  # Service: scraper
+  # Internal worker service — not exposed via Traefik.
+  # Reachable by the backend at http://scraper:9000
+  ###################################################
+  scraper:
+    container_name: job-search-agent-scraper
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: scraper-dev
+    volumes:
+      - ./app:/app/scraper/app
+    env_file:
+      - .env
+    environment:
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_NAME=${DB_NAME}
+      - DB_USER=${DB_USER}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - TARGET_ROLES=${TARGET_ROLES}
+      - TARGET_LOCATIONS=${TARGET_LOCATIONS}
+      - TARGET_DEPARTMENTS=${TARGET_DEPARTMENTS}
+    expose:
+      - 9000
+    networks:
+      - traefik-network
+    restart: unless-stopped
+
+###################################################
+# Networks
+###################################################
+networks:
+  traefik-network:
+    external: true

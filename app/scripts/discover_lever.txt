@@ -1,0 +1,65 @@
+Discovering locations/departments for 1 lever source(s)...
+This may take a minute depending on the number of jobs...
+  Fetching Pattern...
+
+======================================================================
+  DISCOVERY REPORT — LEVER
+======================================================================
+
+  Pattern (LeverExtractor) — 129 jobs
+  URL: https://jobs.lever.co/pattern?location=Lehi%2C%20UT%2C%20US
+  Locations (15):
+    Bethlehem, PA, US
+    Causeway Bay, Hong Kong
+    Dubai, UAE
+    Guangzhou, China
+    Hebron, KY, US
+    Lehi, UT, US
+    London, United Kingdom
+    Melbourne, Australia
+    New York, NY, US
+    North Las Vegas, NV, US
+    Pune, India
+    Remote, South Korea
+    Shanghai
+    Sydney, Australia
+    United Kingdom Warehouse
+  Departments: none returned
+
+======================================================================
+  CONSOLIDATED — ALL LEVER SOURCES
+======================================================================
+
+  ALL UNIQUE LOCATIONS (15):
+    Bethlehem, PA, US
+    Causeway Bay, Hong Kong
+    Dubai, UAE
+    Guangzhou, China
+    Hebron, KY, US
+    Lehi, UT, US
+    London, United Kingdom
+    Melbourne, Australia
+    New York, NY, US
+    North Las Vegas, NV, US
+    Pune, India
+    Remote, South Korea
+    Shanghai
+    Sydney, Australia
+    United Kingdom Warehouse
+
+  ALL UNIQUE DEPARTMENTS (0):
+
+======================================================================
+  SUGGESTED .env ADDITIONS
+======================================================================
+
+  Review the lists above and add relevant keywords to your .env:
+
+  TARGET_LOCATIONS=remote,utah,salt lake,lehi,provo,orem,
+                   american fork,draper,south jordan,ut -,us - remote,
+                   <add more from the list above>
+
+  TARGET_DEPARTMENTS=engineering,product,data science,analytics,
+                     platform,technology,
+                     <add more from the list above>
+

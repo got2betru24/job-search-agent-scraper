@@ -1,0 +1,954 @@
+======================================================================
+  CONSOLIDATED — ALL GREENHOUSE SOURCES
+======================================================================
+
+  ALL UNIQUE LOCATIONS (544):
+    (Canada - Remote (ON, AB, BC, or NS Only))
+    (US-Remote, US-Atlanta, US-Chicago, CA-Toronto, CA-Remote)
+    Amsterdam, North Holland, Netherlands
+    Anywhere in Ireland
+    Anywhere in the United States
+    Arizona, United States
+    Atlanta, Chicago
+    Atlanta, Chicago, New York City, San Francisco, Seattle, US Remote
+    Atlanta, GA
+    Atlanta, GA, US
+    Atlanta, Georgia, United States
+    Atlanta; New York
+    Austin, TX
+    Australia
+    Australia - Remote
+    Bangalore
+    Bangalore, India
+    Barcelona
+    Barcelona, Madrid
+    Barcelona, Spain
+    Bel Air, Maryland
+    Bengaluru
+    Bengaluru - BLR1
+    Bengaluru, India
+    Berlin
+    Berlin, Germany
+    Berlin/Munich
+    Bogotá, Colombia
+    Boston, MA
+    Boston, Massachusetts
+    Bozeman, Montana, United States
+    Brazil
+    Brazil - Remote
+    British Columbia
+    British Columbia, Canada
+    Bucharest, Romania
+    Buenos Aires, Argentina; Costa Rica
+    CA - Sacramento
+    CA - Sacramento; CA - Yuba City; CA - Live Oak
+    CA - San Francisco
+    CA - San Francisco ; WA - Seattle ; NY - New York City
+    CA - San Francisco HQ
+    CA - San Francisco HQ; UT - Cottonwood Heights; WA - Seattle
+    CA - San Francisco HQ; WA - Seattle
+    CA - San Francisco, WA - Seattle
+    CA - San Francisco; NY - New York
+    CA - San Francisco; NY - New York City
+    CA - San Francisco; NY - New York City; WA - Seattle; TX - Frisco; US - Remote
+    CA - San Francisco; NY - New York; WA - Seattle
+    CA - San Francisco; WA - Seattle
+    CA - San Francisco; WA - Seattle; MT - Helena
+    CA - San Francisco; WA - Seattle; NY - New York
+    CA - San Francisco; WA - Seattle; NY -New York; UT -  Cottonwood Heights
+    CA - San Francisco; WA - Seattle; UT  - Cottonwood Heights
+    CA - San Francisco; WA - Seattle; UT - Cottonwood Heights
+    CA - San Francisco; WA - Seattle; UT - Salt Lake
+    CA- Sacramento
+    CA-Remote-British Columbia
+    CDMX3
+    CDMX3; Mexico
+    CHI, ATL, US Remote
+    Calgary, Canada
+    Cambridge, MA, USA
+    Canada
+    Canada - Remote
+    Canada - Remote (AB, BC, ON, NS ONLY)
+    Canada - Remote (BC, ON, AB, or NS only)
+    Canada - Remote (ON, AB, BC, NS only)
+    Canada - Remote (ON, AB, BC, or NS Only)
+    Canada - Toronto
+    Charlotte, NC
+    Chicago
+    Chicago / Remote
+    Chicago or Atlanta
+    Chicago, ATL, US-Remote
+    Chicago, Atlanta
+    Chicago, Atlanta, US-Remote
+    Chicago, IL
+    Chicago, IL , Remote
+    Chicago, IL, US
+    Chicago, IL, US; Remote, US
+    Chicago, IL; Atlanta, GA; US-Remote; San Francisco, CA; New York; NY
+    Chicago, Illinois
+    Chicago, New York, San Fransisco
+    Chicago, Remote
+    Chicago, San Francisco, Seattle, New York City
+    Chicago, US-Remote, Toronto
+    Chicago, US-Remote, Toronto, Canada-Remote
+    Chicago- New York City- San Francisco or Seattle
+    China
+    Colorado, United States
+    Columbia, SC
+    Columbus, OH
+    Connecticut
+    Costa Rica
+    Cottonwood Heights, UT
+    Cottonwood Heights, UT; San Francisco, CA; Seattle, WA
+    Cottonwood Heights, Utah, Remote
+    DC, Remote
+    DC, United States
+    DE - Greenville; NY - New York City; CA - San Francisco; WA - Seattle
+    Dallas, TX
+    Denver, CO
+    Dubai, United Arab Emirates
+    Dublin
+    Dublin / London
+    Dublin OR London
+    Dublin, IE
+    Dublin, Ireland
+    Dublin, Ireland, London, United Kingdom
+    Dublin, London
+    Dublin, London, Berlin
+    Dublin, London, Remote
+    FL - Jacksonville
+    FL - Jacksonville; UT - Cottonwood Heights
+    FL- Jacksonville, UT - Cottonwood Heights
+    Flex - Berlin, Germany
+    Flex - Dublin, Ireland
+    Flex - Ghent, Belgium
+    Flex - London, United Kingdom
+    Flex - Madrid, Spain
+    Flex - Paris, France
+    Flex - Sydney, Australia
+    Frisco, TX
+    Germany
+    Ghent, Belgium
+    Guatemala, Guatemala
+    Gurugram , India
+    Gurugram, India
+    Hartford, CT
+    Hawaii
+    Helena, Montana
+    Helena, Montana or Salt Lake City, Utah
+    Houston, Texas
+    Hybrid - London
+    Hybrid - London, Berlin
+    Hybrid - Luxembourg
+    Hybrid - New York City
+    Hybrid - New York, NY
+    Hybrid - San Francisco
+    Hybrid - San Francisco, CA
+    Hybrid - San Francisco, New York City
+    Hybrid - San Francisco, New York City, Austin
+    Hyderabad, India
+    IE-Dublin
+    IN - Bengaluru
+    IN-Bengaluru
+    Ireland
+    Ireland; United Kingdom
+    Islamabad, Pakistan
+    Islamabad, Pakistan; Lahore, Pakistan
+    Jacksonville, FL
+    Jacksonville, FL; Cottonwood Heights, UT
+    Japan
+    Kansas City, MO
+    Korea
+    Kuala Lumpur, Malaysia
+    LOCATION
+    Lahore, Pakistan
+    Lehi, Utah
+    Lehi, Utah, Open to Remote
+    London
+    London - UK2
+    London - UK2; London, England, United Kingdom
+    London - UK2; Remote - UK
+    London - United Kingdom
+    London, Dublin
+    London, Dublin, Berlin
+    London, England, United Kingdom
+    London, UK
+    London, United Kingdom
+    Los Angeles, CA
+    Los Angeles, CA, US
+    Luxembourg
+    MT - Helena
+    MX - Mexico City
+    Madrid
+    Madrid, Spain
+    Manila, Philippines
+    Maryland
+    Melbourne
+    Melbourne, AU
+    Melbourne, Australia
+    Mexico
+    Mexico City
+    Mexico City, MX
+    Mexico City, MX; Remote, MX
+    Mexico City, Mexico
+    Miami, FL
+    Miami, United States
+    Miami, United States, San Francisco, United States
+    Milan, Italy
+    Milwaukee, WI
+    Minneapolis, MN
+    Missoula, Montana, United States
+    Montreal, Québec
+    Montreal,Canada
+    N/A
+    NA
+    NC - Charlotte
+    NY - New York City
+    NY - New York City; CA - San Francisco; Frisco - TX
+    NY or SF
+    NY, SF, Chicago
+    NY, SF, Remote
+    NYC
+    NYC - Remote
+    NYC, SEA
+    NYC, SF
+    NYC, Seattle, SF, Chicago, Remote-US/CA
+    NYC, Seattle, San Francisco, Chicago, Atlanta, Remote
+    NYC, South San Francisco HQ
+    NYC-Privy
+    NYC-Privy, US-Remote
+    Nashville, TN
+    Nevada, United States
+    New Jersey, United States
+    New York
+    New York City - NY; San Francisco - CA
+    New York City, NY
+    New York City, NY, US
+    New York City, New York
+    New York City, Seattle, San Francisco, Chicago, Atlanta, US-Remote
+    New York Privy HQ
+    New York or San Francisco
+    New York or Toronto
+    New York, NY / Denver, CO / San Francisco, CA
+    New York, NY or San Francisco, CA
+    New York, NY, US
+    New York, NY, US; Chicago, IL, US
+    New York, NY, US; Remote, US
+    New York, NY/ San Francisco, CA
+    New York, NY; San Francisco, CA
+    New York, New York
+    New York, New York/ Boston, Massachusetts
+    New York, San Francisco
+    New York, San Fransisco
+    New York, San Fransisco, Seattle, Chicago, Remote in the US, Canada
+    New York, San Fransisco, Seattle, Chicago, US Remote
+    Northeast, U.S.
+    Northern Europe/MEA
+    Office - Bengaluru, India
+    Ontario
+    Ontario or British Columbia
+    Orlando, FL
+    Orlando, Florida
+    Palo Alto, CA, US; Remote, US
+    Palo Alto, CA, US; San Francisco, CA, US; Seattle, WA, US
+    Paris
+    Paris, France
+    Perth, Australia
+    Philadelphia, Pennsylvania
+    Philadelphia, Pennsylvania, United States
+    Phoenix, Arizona
+    Phoenix, Arizona, United States
+    Pittsburgh, Pennsylvania
+    Portland, OR
+    Québec City, Québec
+    Raleigh, NC
+    Remote
+    Remote (APAC)
+    Remote (East Coast)
+    Remote (Europe)
+    Remote (Mountain West)
+    Remote (North America)
+    Remote (US)
+    Remote (West Coast)
+    Remote - AL
+    Remote - AR
+    Remote - AZ
+    Remote - Argentina, United States
+    Remote - Austin
+    Remote - Australia
+    Remote - Bangalore, India
+    Remote - Brazil
+    Remote - CA
+    Remote - CO
+    Remote - CT
+    Remote - California, Remote - Colorado, Remote - Oregon, Remote - Washington
+    Remote - Canada
+    Remote - Canada; Remote - USA
+    Remote - Chicago
+    Remote - Colombia
+    Remote - Cyprus
+    Remote - DC; Remote - MA; Remote - NY; Remote - PA
+    Remote - Dallas
+    Remote - Denver
+    Remote - FL
+    Remote - France
+    Remote - GA
+    Remote - Germany
+    Remote - IA
+    Remote - ID
+    Remote - IL
+    Remote - IN
+    Remote - IN Metro
+    Remote - India
+    Remote - Ireland
+    Remote - KS
+    Remote - LA
+    Remote - MA
+    Remote - MI
+    Remote - MO
+    Remote - MS
+    Remote - Mexico
+    Remote - NC
+    Remote - ND
+    Remote - NE
+    Remote - NJ
+    Remote - NY
+    Remote - NYC
+    Remote - NYC; Remote - SF Bay Area; Remote - TX
+    Remote - Netherlands
+    Remote - OH
+    Remote - OK
+    Remote - OR
+    Remote - Ontario, Canada
+    Remote - PA
+    Remote - Poland
+    Remote - SF Bay Area
+    Remote - Singapore
+    Remote - South Dakota
+    Remote - Spain
+    Remote - TX
+    Remote - Toronto
+    Remote - UAE
+    Remote - UK
+    Remote - US
+    Remote - USA
+    Remote - UT
+    Remote - United Kingdom
+    Remote - United Kingdom, Germany
+    Remote - United States
+    Remote - VT
+    Remote - WA
+    Remote - WI
+    Remote US
+    Remote US / San Francisco, CA / New York, NY
+    Remote US and Canada
+    Remote US, Canada
+    Remote in United States
+    Remote in the US
+    Remote, North America
+    Remote, Philippines
+    Remote, US
+    Remote, USA
+    Remote- USA
+    Remote-US/CA
+    Remote-USA
+    Rome, Italy
+    Rome, Italy; Milan, Italy
+    SEA
+    SEA, SF
+    SF
+    SF Bay Area, US-National
+    SF, NY, SEA, Remote-US
+    SF, NY, SEA, US-Remote
+    SF, NYC
+    SF, NYC, CHI, SEA
+    SF, NYC, remote
+    SF, New York, Seattle
+    SF, SEA
+    SF, SEA, NY
+    SF, SEA, NY, Remote-US
+    SF, SEA, NYC
+    SF, SEA, NYC, US - Remote
+    SF, SEA, NYC, US-Remote
+    SF, SEA, US-Remote (West)
+    SF, Seattle, New York, Chicago
+    Salt Lake City, UT
+    San Antonio, TX
+    San Diego, CA
+    San Francisco
+    San Francisco - CA
+    San Francisco - CA; New York City - NY; US - Remote
+    San Francisco - SF9
+    San Francisco Bay Area
+    San Francisco Bay Area, CA
+    San Francisco Bay Area, California
+    San Francisco or New York
+    San Francisco or New York or Seattle
+    San Francisco, CA
+    San Francisco, CA, US
+    San Francisco, CA, US;  Remote, US
+    San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US
+    San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; New York, NY, US
+    San Francisco, CA, US; Palo Alto, CA, US; Seattle, WA, US; Remote, US
+    San Francisco, CA, US; Remote, CA, US
+    San Francisco, CA, US; Remote, US
+    San Francisco, CA, US; Seattle, WA, US
+    San Francisco, CA, United States
+    San Francisco, CA; Cottonwood Heights, UT; Frisco, TX
+    San Francisco, CA; Seattle, WA
+    San Francisco, California
+    San Francisco, NY, Seattle
+    San Francisco, NYC, Seattle, Chicago, US Remote, Toronto
+    San Francisco, New York
+    San Francisco, New York City
+    San Francisco, New York City, Seattle
+    San Francisco, New York, Seattle
+    San Francisco, New York, Seattle, Chicago, Remote, Toronto
+    San Francisco, Seattle
+    San Francisco, Seattle, Chicago, US-remote, New York
+    San Francisco, Seattle, NYC, Chicago, Toronto, US- Remote, Canada-Remote
+    San Francisco, Seattle, New York
+    San Francisco, Seattle, New York City
+    San Francisco, Seattle, New York, Chicago
+    San Francisco, Seattle, New York, US - Remote
+    San Francisco, Seattle, Remote in US
+    San Francisco, Seattle, Remote in US or Canada
+    San Francisco, United States
+    Sao Paulo, Brazil
+    Seattle
+    Seattle, SF
+    Seattle, SF, NYC
+    Seattle, San Francisco
+    Seattle, San Francisco, New York
+    Seattle, San Francisco, New York City
+    Seattle, San Francisco, New York, US - Remote
+    Seattle, San Francisco, Remote in the US
+    Seattle, San Francisco, US-Remote
+    Seattle, US-Remote, San Francisco
+    Seattle, WA
+    Seattle, WA OR New York, NY OR Remote North America
+    Seattle, WA, US
+    Seattle, WA, US; Remote, US
+    Seattle, WA, US; San Francisco, CA, US; Los Angeles, CA, US
+    Seattle, WA; Remote - United States
+    Seattle, WA; San Francisco, CA; Toronto, CAN
+    Seattle, Washington
+    Seattle; San Francisco; New York City
+    Seattle; San Francisco; New York City; Remote
+    Sedona, AZ
+    Seoul, Korea
+    Seoul, South Korea
+    Singapore
+    Singapore, SG
+    Singapore, Singapore
+    Singapore, Sydney
+    Singapore, Tokyo, Sydney, Bangkok
+    South San Francisco
+    South San Francisco, CA; New York, NY; Seattle, WA; Chicago, IL; Atlanta, GA; Washington DC
+    Southeast, U.S.
+    Spain
+    Stockholm
+    Switzerland - Lucerne
+    Sydney
+    Sydney, AU
+    Sydney, Australia
+    São Paulo, Brazil
+    TX - Frisco
+    TX - Frisco ; TX - Remote
+    TX - Frisco; NC - Charlotte
+    TX - Frisco; NC - Charlotte; FL - Jacksonville; DE - Greenville; UT - Cottonwood Heights
+    Tallahassee, FL
+    Tampa, FL
+    Tokyo
+    Tokyo, JP
+    Tokyo, Japan
+    Tokyo, Japan; Singapore, Singapore; Seoul, Korea
+    Toronto
+    Toronto Canada, San Francisco, Remote in US, Remote in Canada
+    Toronto, CAN-Remote
+    Toronto, Canada
+    Toronto, Canada Remote
+    Toronto, Canada, Canada Remote
+    Toronto, Chicago
+    Toronto, ON, CA
+    Toronto, Ontario, Canada
+    Toronto, Remote in Canada
+    Toronto, Remote-Canada
+    Toronto, US-Remote
+    US
+    US - Remote
+    US / Canada
+    US Locations
+    US Remote
+    US Remote or Toronto, CA
+    US office based or remote
+    US, Canada
+    US, Remote
+    US-Chicago
+    US-Chicago; Canada-Toronto
+    US-NY
+    US-New York
+    US-Rem
+    US-Remote
+    US-Remote, Toronto
+    US-Remote, US-SEA, US-SF, US-NYC
+    US-Remote, US-San Francisco, US-Chicago, US-New York
+    US-Remote; US- Chicago; US-Atlanta; Canada-Toronto; Canada-Remote
+    US-Remote; US-Chicago; US-Atlanta; CA-Toronto
+    US-Remote; US-Chicago; US-Atlanta; CA-Toronto; CA-Remote
+    US-Remote; US-Chicago; US-Atlanta; Canada-Toronto
+    US-Remote; West Coast
+    US-SEA or US-SF
+    US-SEA, US-SF
+    US-SF
+    US-SF, US-NYC
+    US-SF, US-NYC, US-SEA
+    US-SF-HQ
+    US-rem
+    USA - Remote
+    USA - San Francisco, Seattle, New York (office) or remote
+    USA Remote or office based
+    UT - Cottonwood Heights
+    UT - Cottonwood Heights ; MT - Helena
+    UT - Cottonwood Heights, FL - Jacksonville
+    UT - Cottonwood Heights; CA - San Francisco HQ;  TX - Frisco
+    UT - Cottonwood Heights; CA - San Francisco HQ; VA - Reston; TX - Frisco
+    UT - Cottonwood Heights; CA - San Francisco HQ; VA - Reston; TX - Frisco; WA - Seattle
+    UT - Cottonwood Heights; CA - San Francisco, TX - Frisco; NY - New York City
+    UT - Cottonwood Heights; CA - San Francisco; NY - New York City
+    UT - Cottonwood Heights; CA - San Francisco; TX - Frisco; NC - Charlotte; NY - New York City; FL - Jacksonville
+    UT - Cottonwood Heights; CA - San Francisco; TX - Frisco; NY - New York City
+    UT - Cottonwood Heights; CA - San Francisco; TX - Frisco; NY - New York City; NC - Charlotte; FL - Jacksonville
+    UT - Cottonwood Heights; CA - San Francisco; TX - Frisco; NY - New York City; WA - Seattle; FL - Jacksonville; NC - Charlotte
+    UT - Cottonwood Heights; FL - Jacksonville
+    UT - Cottonwood Heights; FL - Jacksonville; NY - New York City
+    UT - Cottonwood Heights; FL- Jacksonville
+    UT - Cottonwood Heights; FL-Jacksonville
+    UT - Remote
+    UT- Cottonwood Heights
+    UT- Cottonwood Heights ; MT- Helena
+    UT-Cottonwood Heights; FL-Jacksonville
+    United Kingdom
+    United States
+    United States - Remote
+    United States - Remote - NY or SF
+    Utah
+    Vancouver, Canada
+    WA - Seattle
+    WA - Seattle; CA - San Francisco
+    WA - Seattle; CA - San Francisco HQ
+    WA - Seattle; CA - San Francisco; NY - New York City
+    WA - Seattle; CA - San Francisco; US - Remote
+    WA - Seattle; CA- SanFrancisco; NY - New York City; UT - Cottonwood Heights
+    WA - Seattle; UT - Cottonwood Heights; CA - San Francisco; NY - New York City
+    WA - Seattle; UT - Cottonwood Heights; CA - San Francisco; TX - Frisco
+    WA- Seattle
+    West and Mountain Timezones (North America)
+    Zurich, CH
+    london
+    na
+
+  ALL UNIQUE DEPARTMENTS (389):
+    1130 Global Sales Development Mgrs
+    1131 Vendor Mgmt and SD PM
+    1132 AMER Sales Development Reps
+    1133 EMEA Sales Development Reps
+    1134 APAC Sales Development Reps
+    1135 Accelerate
+    1140 Professional Services
+    1150 Solutions Architecture
+    1160 Partner Solution Engineering
+    1170 GEO Sales HQ (NA)
+    1175 Enterprise - Account Executives (NA)
+    1180 GEO Sales HQ (EMEA)
+    1185 Account Executives (EMEA)
+    1190 GEO Sales HQ (APAC)
+    1195 Account Executives (APAC)
+    1340 Customer Success Management
+    1341 Renewals
+    1342 Payment Performance
+    1510 GTM Business Operations
+    1512 Global Sales Enablement
+    1520 Sales Operations (SS&O)
+    1530 GTM Industries
+    1630 Alliances & Channels
+    1640 Product Sales - Payments
+    1641 Product Sales - RFA ex Billing
+    1642 Product Sales - MaaS
+    1643 Product Sales - Billing
+    1644 Product Sales - Prime Billing
+    1650 AI GTM Strategy & Solutions
+    1652 Platforms - Account Executives (NA)
+    1653 Startups - Account Executives (NA)
+    2312 Marketing - EMEA
+    2313 Marketing - APAC
+    2314 Performance Marketing
+    2315 Marketing - Marketing Operations
+    2316 Marketing - Partner
+    2317 Marketing - PMM
+    2318 Corp Events
+    2324 Brand Marketing
+    2325 Exec Marketing
+    2413 Communications
+    3110 User Policy Operations
+    3130 Risk & Reward
+    3131 Risk Supportability Strategy
+    3311 FinCRO
+    3313 SDC - Financial Crimes
+    3510 Global Partnerships
+    3511 Financial Services Partnerships
+    3512 RFA, P&E, and Connectors Partnerships
+    4114 Product Management, Strategy & Analytics
+    4118 Managed Operations
+    4119 Product Support
+    4128 SDC - Product Support
+    4129 SDC - User Policy Operations
+    4130 Technical Account Management, Support & Services - AMER
+    4135 SDC - Marketing
+    4138 SDC - Tech Ops
+    4139 SDC - GTM Operations
+    4141 SDC - Central Operations Enablement
+    4146 Community Ops - SDC
+    4147 Technical Account Management, Support & Services - EMEA
+    4148 Technical Account Management, Support & Services - APAC
+    4149 Technical Account Management, Support & Services - S&S
+    4150 Technical Support
+    4168 SDC - Credit Operations
+    4179 Support Ops Tech & Other
+    4202 BFin - FinOps (SDC)
+    4203 BFin - Accounting (SDC)
+    4204 SDC - MonOps
+    4374 SDC - Partner Risk Operations
+    4378 SDC - Fraud Operations
+    4432 SDC - Product Experience Operations
+    4516 SDC - Bridge
+    4712 SDC - Accelerate
+    4892 Risk Operations Enablement & Vendor Management
+    4896 Fraud Operations
+    4900 Support Eng & PM
+    5112 General University
+    5113 Experimental Bets - Core Tech
+    6220 Executive Operations
+    6309 Policy Development
+    6310 Corporate Affairs
+    6320 Commercial Legal
+    6330 Americas Regulatory Affairs
+    6360 Product & Partnering Legal
+    6410 Treasury Finance
+    6420 Accounting
+    6425 Finance Operations
+    6426 Monetization Operations
+    6427 Procurement
+    6430 Tax
+    6441 Corporate F&S
+    6443 GTM F&S
+    6444 Deal Pricing
+    6451 COE F&S (SDC)
+    6452 Sales Comp
+    6480 Internal Audit
+    6482 SOX
+    6483 Risk Partnerships
+    6490 Strategic Ops
+    6513 People Systems & Solutions
+    6515 People Specialists
+    6516 Employee Relations
+    6520 Recruiting
+    6523 Recruiting Enablement
+    6525 Leadership Recruiting
+    6526 University Recruiting
+    6531 Compensation
+    6541 New Hire Programs
+    6550 People Partners
+    6610 Food
+    6630 Real Estate
+    7112 Data Science
+    7312 CorpTech Customer Success
+    7313 CorpTech Corporate Engineering
+    7420 Finance Systems
+    8113 Brand Studio
+    8116 Developer Platform - Eng
+    8121 Revenue Foundations
+    8122 Data Foundations
+    8123 Data Infrastructure
+    8126 Developer Infrastructure
+    8127 Core Infrastructure
+    8133 Marketing Systems
+    8134 Operations Platform
+    8186 Service Platform
+    8212 ML Foundations
+    8216 Risk Onboarding and Trusted Users
+    8217 Risk Engineering
+    8250 Connect - PM
+    8256 BaaS - PM
+    8258 Terminal - PM
+    8260 Risk and Compliance Platform PM
+    8262 APAC - PM
+    8412 Billing Products
+    8413 Financial Operations Products
+    8414 MerchantXP - Eng
+    8417 Accounting Products
+    8504 Bridge - R&D
+    8505 Bridge - G&A
+    8506 Bridge - S&O
+    8511 PayIntel - Eng
+    8512 Terminal - Eng
+    8513 Payments Experience - Eng
+    8514 Connect - Eng
+    8528 FSB Risk and Capital Markets
+    8529 Risk Compliance Programs
+    8531 Crypto Product
+    8536 Risk and Onboarding UX PM
+    8546 MMS Platform - Eng
+    8547 Cards Online - PM
+    8548 Payins - Eng
+    8551 OAP - Eng
+    8552 PayIntel - PM
+    8554 Payments Experiences - PM
+    8555 Payments Globalization - PM
+    8556 LPM Core - Eng
+    8557 Payments Admin
+    8560 Bank Connections - Eng
+    8566 Developer Platform - PM
+    8570 Consumer Network - Eng
+    8581 Global Selling - Eng
+    8582 Optimized Checkout - Eng
+    8586 Optimized Checkout - PM
+    8589 Bridge - S&M
+    8590 BaaS - Eng
+    8596 Tax Products
+    8612 Security Infrastructure
+    8613 Data Privacy
+    8614 Office of the CISO & Partnership
+    8712 Enterprise Engine
+    8811 Product Design
+    8812 UX Research
+    8813 Web Presence & Platform
+    8910 Technical Program Management
+    8915 Core Tech Product Management
+    8916 Growth - Eng
+    9001 Privy - R&D
+    9003 Privy - S&O
+    9004 Privy - S&M
+    AI
+    AI & Data
+    APAC Enterprise Sales
+    Account Development Representative
+    Account Executive
+    Account Management
+    Accounting
+    Accounting & Finance
+    Ad Sales
+    Administrative
+    Ads Product
+    Agency Sales
+    Analytics
+    BUL
+    Brand & Creative
+    Business Development
+    Business Development & Partnerships
+    Business Development & Sales
+    Business Operations & Strategy
+    Business Operations/Analysis
+    Business Systems
+    Business Value & Strategy
+    CMO Strategic Initiatives
+    Caper 
+    Capital Markets
+    Central Operations
+    Collections
+    Commercial
+    Commercial Excellence
+    Comms & Policy
+    Communications
+    Community Support
+    Compliance
+    Compliance Trust & Safety
+    Connected Asset Maintenance
+    Content Design
+    Contractor
+    Core Engineering
+    Core Product
+    Corp Dev & Analytics
+    Corporate Accounting
+    Corporate Development
+    Corporate Development & Ventures
+    Corporate Marketing
+    Creative
+    Customer Experience
+    Customer Experience & Operations
+    Customer Success
+    Customer Success 
+    Customer Success Engineering
+    Customer Support
+    Data
+    Data Engineering
+    Data Science
+    Data Science & Analytics
+    Design
+    Developer Experience
+    Digital Acquisitions
+    EU Sales
+    Employee Experience
+    Engineering
+    Engineering & Technology
+    Engineering - Backend
+    Engineering - Data
+    Engineering - Frontend
+    Engineering - Infrastructure
+    Engineering - Managers
+    Engineering - Mobile
+    Engineering - Security
+    Engineering Support
+    Engineering, Product and Design (L2)
+    Enterprise Applications
+    Europe Enterprise Sales
+    Executive
+    FP&A
+    Field Engineering
+    Finance
+    Finance & Accounting
+    Finance / Data / Operations
+    Finance Transformations
+    Finance and Strategy
+    Financial Planning and Analysis
+    Fraud Ops
+    Fulfillment Operations
+    G&A: Contract
+    General Marketing
+    Geospatial
+    Global Client Solutions
+    Global Content Organization
+    Global Ops Engineering
+    Growth Marketing
+    HL Sales
+    HR & Recruiting
+    Hardware Engineering
+    Hardware Quality
+    Home Loans Ops Production
+    Home Loans Ops Strategy
+    Human Resources
+    IT
+    IT Security
+    Implementations
+    Information Security
+    Information Technology
+    Infrastructure and SRE
+    Institutional Sales, Trading, and Prime Services
+    Intern
+    Internal Audit
+    International Expansion
+    International Operations
+    Internships & Emerging Talent Positions
+    Leadership (Product)
+    Legal
+    Legal & Compliance
+    Legal Team
+    Localization
+    Machine Learning
+    Marketing
+    Marketing 
+    Marketing & Communications
+    Marketing Systems & Intelligence
+    Media
+    Member Service Delivery Strategy
+    Mexico
+    Mobile
+    Monetization
+    North America Enterprise Sales
+    OCEO
+    OMS
+    Offshore Sales Development
+    Operations
+    Operations & Support
+    Operations Management
+    Ops PMO
+    Ops Training Strategy
+    Oversight Engineering
+    Partner Sales
+    Partnerships
+    Partnerships 
+    Payroll and Equity
+    People
+    People & Culture
+    People Experience
+    People Operations
+    People Team
+    Performance Marketing
+    Planning
+    Platform
+    Platform Infrastructure
+    Pricing
+    Product
+    Product Design
+    Product Management
+    Product Marketing
+    Product Shared Service Center
+    Product Specialists
+    Professional Services
+    Program Management
+    Project Management
+    Public Policy
+    Quality Assurance
+    Recruiting
+    Relay Advisors
+    Renewals
+    Research
+    Research & Design
+    Retail Business Development
+    Revenue Operations
+    Review
+    Risk & Fraud
+    Risk 2LOD
+    Risk Management
+    SMB Sales
+    STCE
+    STCE Hardware & Firmware
+    Safety
+    Safety Review
+    Sales
+    Sales & Partnerships
+    Sales Business Operations
+    Sales Development
+    Sales Engineering
+    Sales Non-QCR
+    Sales Strategy
+    Scaled CS
+    Security
+    Security & Privacy
+    Services
+    Software Engineering
+    Solution Engineering
+    Structure
+    Supply Chain
+    Support
+    TP&A
+    Talent Acquisition
+    Technical Program Management
+    Technical Recruiting
+    Telematics
+    Terminal - PM (Planning Group)
+    Trust and Safety
+    Trust and Safety Ops
+    US Commercial AE1
+    US Enterprise Sales
+    US Mid Market AE2
+    US Public Sector
+    University
+    University Engineering
+    User Experience
+    Workplace
+    tvScientific
+
+======================================================================
+  SUGGESTED .env ADDITIONS
+======================================================================
+
+  Review the lists above and add relevant keywords to your .env:
+
+  TARGET_LOCATIONS=remote,utah,salt lake,lehi,provo,orem,
+                   american fork,draper,south jordan,ut -,us - remote,
+                   <add more from the list above>
+
+  TARGET_DEPARTMENTS=engineering,product,data science,analytics,
+                     platform,technology,
+                     <add more from the list above>

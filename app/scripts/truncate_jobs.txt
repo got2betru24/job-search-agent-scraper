@@ -1,0 +1,11 @@
+docker exec -i mysql mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -e "
+SET FOREIGN_KEY_CHECKS=0; TRUNCATE TABLE scrape_log; TRUNCATE TABLE jobs; SET FOREIGN_KEY_CHECKS=1;
+"
+
+
+docker exec -i mysql mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -e "UPDATE sources 
+SET url = 'https://waystar.wd1.myworkdayjobs.com/Waystar',
+    extractor_type = 'workday',
+    requires_js = FALSE
+WHERE company = 'Waystar';
+"
