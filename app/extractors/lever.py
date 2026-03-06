@@ -20,6 +20,7 @@ from typing import List, Dict
 from bs4 import BeautifulSoup
 from app.base import BaseExtractor
 from app.models import JobListing, JobDetail
+from app.utils import clean_html
 
 
 class LeverExtractor(BaseExtractor):
@@ -38,7 +39,6 @@ class LeverExtractor(BaseExtractor):
         api_url = f"https://api.lever.co/v0/postings/{slug}"
 
         data = await self.fetch_json(api_url, params={"mode": "json"})
-
         if not data or not isinstance(data, list):
             return []
 
@@ -50,10 +50,8 @@ class LeverExtractor(BaseExtractor):
             if not title or not url:
                 continue
 
-            # Cache full detail from listing data — avoids redundant API calls
             detail = self._parse_detail(job)
             self._detail_cache[url] = detail
-
             listings.append(JobListing(title=title, url=url))
 
         return listings
@@ -67,41 +65,31 @@ class LeverExtractor(BaseExtractor):
     def _parse_detail(self, job: dict) -> JobDetail:
         """Parse a Lever posting object into a JobDetail."""
         description_parts = []
-        requirements = []
+        requirements      = []
 
         for section in job.get("lists", []):
             name    = section.get("text", "").lower()
             content = section.get("content", "")
-
-            items = BeautifulSoup(content, "html.parser").get_text(
+            items   = BeautifulSoup(content, "html.parser").get_text(
                 separator="\n", strip=True
             )
-
             if any(kw in name for kw in ["requirement", "qualif", "what you'll need", "what we're looking for"]):
                 requirements = [line.strip() for line in items.split("\n") if line.strip()]
             else:
                 description_parts.append(f"{section.get('text', '')}\n{items}")
 
         raw_desc = job.get("descriptionPlain", "") or job.get("description", "") or ""
+        raw_desc = clean_html(raw_desc)
         if raw_desc:
-            raw_desc = BeautifulSoup(raw_desc, "html.parser").get_text(
-                separator="\n", strip=True
-            )
             description_parts.insert(0, raw_desc)
 
-        description = "\n\n".join(description_parts).strip()
+        description = "\n\n".join(description_parts).strip() or None
 
-        categories = job.get("categories", {})
-
-        # Location
-        location = categories.get("location")
-
-        # Team maps to department in Lever
-        team = categories.get("team")
+        categories  = job.get("categories", {})
+        location    = categories.get("location")
+        team        = categories.get("team")
         departments = [team] if team else []
-
-        # Commitment (job type)
-        job_type = categories.get("commitment")
+        job_type    = categories.get("commitment")
 
         return JobDetail(
             title=job.get("text", "").strip(),
@@ -109,6 +97,6 @@ class LeverExtractor(BaseExtractor):
             location=location,
             job_type=job_type,
             departments=departments,
-            description=description[:5000] if description else None,
+            description=description,
             requirements=requirements,
         )

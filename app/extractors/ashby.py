@@ -16,9 +16,9 @@ requires authentication on some boards so we avoid it entirely.
 
 import re
 from typing import List, Dict
-from bs4 import BeautifulSoup
 from app.base import BaseExtractor
 from app.models import JobListing, JobDetail
+from app.utils import clean_html
 
 
 class AshbyExtractor(BaseExtractor):
@@ -37,11 +37,9 @@ class AshbyExtractor(BaseExtractor):
         api_url = f"https://api.ashbyhq.com/posting-api/job-board/{slug}"
 
         data = await self.fetch_json(api_url, params={"includeCompensation": "true"})
-
         if not data:
             return []
 
-        # API returns either 'jobPostings' or 'jobs' depending on board version
         job_list = data.get("jobPostings") or data.get("jobs") or []
 
         listings = []
@@ -55,11 +53,8 @@ class AshbyExtractor(BaseExtractor):
             if not title or not url:
                 continue
 
-            # Parse and cache full detail from listing data — avoids
-            # separate detail fetch which requires auth on some boards
             detail = self._parse_detail(job, url)
             self._detail_cache[url] = detail
-
             listings.append(JobListing(title=title, url=url))
 
         return listings
@@ -71,17 +66,9 @@ class AshbyExtractor(BaseExtractor):
         return JobDetail(title=listing.title, url=listing.url)
 
     def _parse_detail(self, job: dict, url: str) -> JobDetail:
-        # Strip HTML from description
-        description = ""
-        raw = job.get("descriptionHtml") or job.get("description") or ""
-        if raw:
-            description = BeautifulSoup(raw, "html.parser").get_text(
-                separator="\n", strip=True
-            )
+        description = clean_html(job.get("descriptionHtml") or job.get("description") or "")
 
-        # Location — handle both API versions:
-        # 'jobPostings' format: locationName (str or list) + otherLocations
-        # 'jobs' format: location (str) + secondaryLocations (list of {location: str})
+        # Location — handle both API versions
         location_parts = []
 
         loc = job.get("locationName") or job.get("location")
@@ -90,13 +77,11 @@ class AshbyExtractor(BaseExtractor):
         elif isinstance(loc, str) and loc:
             location_parts.append(loc.strip())
 
-        # 'jobs' format secondary locations
         for sec in job.get("secondaryLocations", []):
             name = sec.get("location", "").strip()
             if name and name not in location_parts:
                 location_parts.append(name)
 
-        # 'jobPostings' format other locations
         for other in job.get("otherLocations", []):
             name = other.get("name", "").strip() if isinstance(other, dict) else str(other)
             if name and name not in location_parts:
@@ -105,7 +90,7 @@ class AshbyExtractor(BaseExtractor):
         location = " | ".join(location_parts) if location_parts else None
 
         # Department
-        dept = job.get("department")
+        dept        = job.get("department")
         departments = []
         if isinstance(dept, str) and dept:
             departments = [dept]
@@ -116,7 +101,7 @@ class AshbyExtractor(BaseExtractor):
 
         # Salary
         salary = None
-        comp = job.get("compensation", {})
+        comp   = job.get("compensation", {})
         if comp:
             min_v    = comp.get("minValue")
             max_v    = comp.get("maxValue")
@@ -132,5 +117,5 @@ class AshbyExtractor(BaseExtractor):
             departments=departments,
             job_type=job.get("employmentType"),
             salary=salary,
-            description=description[:5000] if description else None,
+            description=description,
         )

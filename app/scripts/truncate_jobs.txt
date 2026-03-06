@@ -9,3 +9,12 @@ SET url = 'https://waystar.wd1.myworkdayjobs.com/Waystar',
     requires_js = FALSE
 WHERE company = 'Waystar';
 "
+
+docker exec -i mysql mysql -u root -p${DB_ROOT_PASSWORD} ${DB_NAME} -e "
+SELECT * FROM jobs WHERE id=1;
+"
+
+
+
+
+Another question. Is the pay range stored in one of those fields? Or is there a good way to ensure we are getting that, as well? We could probably parse it from the Job description, but it would be nice if we could just look it up cleanly.

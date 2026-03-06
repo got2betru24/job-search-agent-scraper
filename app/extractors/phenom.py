@@ -6,16 +6,22 @@ as a JSON blob inside a <script> tag in the page source for SEO purposes.
 
 The data lives in window.phApp.ddo.eagerLoadRefineSearch.data.jobs
 
-Since all job data is available in the listing page HTML, Pass 1 and
-Pass 2 are merged — get_listings() extracts everything and caches it.
+Pass 1 extracts title, location, and a short description teaser from the
+listing page. Pass 2 fetches the individual job page for the full description.
+
+Note: Phenom job URLs often point to the underlying ATS (e.g. Workday).
+The detail fetch handles this transparently — it fetches the job URL and
+parses either a JSON-LD block (Workday-hosted pages) or falls back to
+extracting visible page text.
 """
 
 import re
 import json
-from typing import List, Dict
+from typing import List, Dict, Optional
 from bs4 import BeautifulSoup
 from app.base import BaseExtractor
 from app.models import JobListing, JobDetail
+from app.utils import clean_html
 
 
 class PhenomExtractor(BaseExtractor):
@@ -24,13 +30,12 @@ class PhenomExtractor(BaseExtractor):
         self._detail_cache: Dict[str, JobDetail] = {}
 
     async def get_listings(self, source_url: str) -> List[JobListing]:
-        listings = []
+        listings  = []
         page_size = 10
         max_pages = 20  # safety cap — 200 jobs max per source
         seen_urls = set()
 
         for page in range(max_pages):
-            # Append pagination param — preserve existing query params
             from urllib.parse import urlparse, urlencode, parse_qs, urlunparse
             parsed = urlparse(source_url)
             params = parse_qs(parsed.query)
@@ -57,22 +62,104 @@ class PhenomExtractor(BaseExtractor):
                 if not title or not url or url in seen_urls:
                     continue
 
+                # Strip /apply suffix — we want the job page, not the apply page
+                url = re.sub(r"/apply$", "", url.rstrip("/"))
+
                 seen_urls.add(url)
-                detail = self._parse_detail(job, url)
+                detail = self._parse_listing(job, url)
                 self._detail_cache[url] = detail
                 listings.append(JobListing(title=title, url=url))
                 new_jobs += 1
 
-            # If we got fewer than page_size new jobs, we've hit the last page
             if len(jobs) < page_size or new_jobs == 0:
                 break
 
         return listings
 
     async def get_detail(self, listing: JobListing) -> JobDetail:
-        if listing.url in self._detail_cache:
-            return self._detail_cache[listing.url]
-        return JobDetail(title=listing.title, url=listing.url)
+        """
+        Fetch full job description from the individual job page.
+        Tries JSON-LD first (works for Workday-hosted pages),
+        falls back to extracting visible body text.
+        Falls back to cached listing data if fetch fails.
+        """
+        try:
+            html = await self.fetch(listing.url)
+        except Exception:
+            return self._detail_cache.get(
+                listing.url,
+                JobDetail(title=listing.title, url=listing.url)
+            )
+
+        if not html:
+            return self._detail_cache.get(
+                listing.url,
+                JobDetail(title=listing.title, url=listing.url)
+            )
+
+        # Try JSON-LD first (Workday-hosted pages embed this for SEO)
+        detail = self._parse_jsonld(html, listing)
+        if detail and detail.description:
+            return detail
+
+        # Fall back to full page text extraction
+        description = clean_html(html)
+        # Guard against JS-rendered pages that return only nav/footer text —
+        # if the extracted text is suspiciously short it is not a real description
+        if not description or len(description) < 500:
+            description = None
+        cached = self._detail_cache.get(listing.url)
+        return JobDetail(
+            title=listing.title,
+            url=listing.url,
+            location=cached.location if cached else None,
+            job_type=cached.job_type if cached else None,
+            description=description,
+        )
+
+    def _parse_jsonld(self, html: str, listing: JobListing) -> Optional[JobDetail]:
+        """Parse JSON-LD JobPosting block embedded in the page (Workday pattern)."""
+        matches = re.findall(
+            r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
+            html, re.DOTALL
+        )
+        if not matches:
+            return None
+
+        try:
+            data = json.loads(matches[0])
+        except (json.JSONDecodeError, IndexError):
+            return None
+
+        if data.get("@type") != "JobPosting":
+            return None
+
+        description = data.get("description", "") or ""
+
+        # Location from JSON-LD address
+        cached   = self._detail_cache.get(listing.url)
+        location = None
+        loc      = data.get("jobLocation", {})
+        if isinstance(loc, dict):
+            addr     = loc.get("address", {})
+            locality = addr.get("addressLocality", "")
+            parts    = [p for p in [locality] if p]
+            location = ", ".join(parts) or None
+
+        # Append remote indicator if telecommute
+        if data.get("jobLocationType") == "TELECOMMUTE":
+            location = f"{location} | Remote, US" if location else "Remote, US"
+
+        if not location and cached:
+            location = cached.location
+
+        return JobDetail(
+            title=listing.title,
+            url=listing.url,
+            location=location,
+            job_type=data.get("employmentType") or (cached.job_type if cached else None),
+            description=description.strip() or None,
+        )
 
     def _extract_jobs_from_script(self, html: str) -> list:
         """
@@ -87,18 +174,14 @@ class PhenomExtractor(BaseExtractor):
             if "eagerLoadRefineSearch" not in text:
                 continue
 
-            # Find the position of eagerLoadRefineSearch in the script
             idx = text.find('"eagerLoadRefineSearch"')
             if idx == -1:
                 continue
 
-            # Move past the key and colon to the start of the object {
             start = text.find("{", idx)
             if start == -1:
                 continue
 
-            # Use JSONDecoder to extract exactly one valid JSON object
-            # starting at this position — handles nested braces correctly
             decoder = json.JSONDecoder()
             try:
                 obj, _ = decoder.raw_decode(text, start)
@@ -119,20 +202,25 @@ class PhenomExtractor(BaseExtractor):
             return f"{base.scheme}://{base.netloc}/job/{seq}"
         return ""
 
-    def _parse_detail(self, job: dict, url: str) -> JobDetail:
-        description = (
+    def _parse_listing(self, job: dict, url: str) -> JobDetail:
+        """Parse listing data into a JobDetail for Pass 1 cache."""
+        description = clean_html(
             job.get("descriptionTeaser")
             or job.get("ml_job_parser", {}).get("descriptionTeaser_first200")
             or ""
         )
 
+        # Multi-location — join all locations pipe-separated
         location_parts = job.get("multi_location") or []
-        location = location_parts[0] if location_parts else job.get("cityState")
+        if location_parts:
+            location = " | ".join(location_parts)
+        else:
+            location = job.get("cityState")
 
         return JobDetail(
             title=job.get("title", "").strip(),
             url=url,
             location=location,
             job_type=job.get("type"),
-            description=description[:5000] if description else None,
+            description=description,
         )

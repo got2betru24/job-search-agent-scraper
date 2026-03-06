@@ -4,13 +4,21 @@ Scrape Runner
 Orchestrates scraping across sources using the extractor registry.
 Handles deduplication, filter matching, role classification,
 target role filtering, DB writes, and scrape logging.
+
+Two-pass flow:
+  Pass 1 — get_listings() → filter → deduplicate → write to DB
+  Pass 2 — get_detail()   → fetch full description → update DB
+            Only fires for jobs written in Pass 1 with scrape_status='pending'.
+            Extractors that already populate description in Pass 1
+            (Greenhouse, Lever, Ashby) return 'scraped' immediately and
+            are skipped in Pass 2.
 """
 
 import json
 import logging
 from typing import Optional
 
-from app.database import get_cursor
+from app.database import get_cursor, update_job_detail
 from app.models import ScrapeResult
 from app.registry import get_extractor
 from app.utils import (
@@ -23,6 +31,7 @@ from app.utils import (
     location_is_targeted,
     get_target_departments,
     department_is_targeted,
+    extract_salary,
 )
 
 logger = logging.getLogger(__name__)
@@ -31,10 +40,10 @@ logger = logging.getLogger(__name__)
 async def run_source(source: dict) -> ScrapeResult:
     """
     Run a full two-pass scrape for a single source.
-    Pass 1: get_listings() → filter → deduplicate → role check
-    Pass 2: get_detail()   → write to DB
+    Pass 1: get_listings() → filter → deduplicate → write to DB
+    Pass 2: get_detail()   → fetch full description → update DB
     """
-    filters      = source.get("filters")
+    filters = source.get("filters")
     if filters and isinstance(filters, str):
         filters = json.loads(filters)
 
@@ -65,12 +74,15 @@ async def run_source(source: dict) -> ScrapeResult:
         result.jobs_found = len(listings)
         logger.info(f"[{source['company']}] Found {len(listings)} listings")
 
+        # Track jobs written as 'pending' so Pass 2 knows what to fetch
+        pending_jobs: list[tuple[str, object]] = []  # (url_hash, listing)
+
         for listing in listings:
 
             # Title filter
             if not title_matches_filters(listing.title, filters):
                 result.jobs_filtered += 1
-                logger.info(f"[{source['company']}] Filtered (title): {listing.title}")
+                logger.debug(f"[{source['company']}] Filtered (title): {listing.title}")
                 continue
 
             # Role classification
@@ -79,49 +91,58 @@ async def run_source(source: dict) -> ScrapeResult:
             # Target role filter
             if not role_is_targeted(role, target_roles):
                 result.jobs_filtered += 1
-                logger.info(f"[{source['company']}] Filtered (role={role}): {listing.title}")
+                logger.debug(f"[{source['company']}] Filtered (role={role}): {listing.title}")
                 continue
-
-            # Location filter — checked after detail fetch since
-            # location may not be available until Pass 2
-            # For extractors that populate location in Pass 1 (Phenom, API-based),
-            # we can filter here. For others, location will be checked post-detail.
 
             # Deduplication
             url_hash = hash_url(listing.url)
             if _job_exists(url_hash):
                 result.jobs_skipped += 1
-                logger.info(f"[{source['company']}] Skipped (exists): {listing.title}")
+                logger.debug(f"[{source['company']}] Skipped (exists): {listing.title}")
                 continue
 
-            # ── Pass 2: get detail ───────────────────────────
+            # ── Pass 2 prep: get detail ──────────────────────
             try:
                 detail = await extractor.get_detail(listing)
             except Exception as e:
-                # 406 is expected for Workday detail API — we have listing data already
                 if "406" not in str(e):
                     logger.warning(f"[{source['company']}] Detail fetch failed for {listing.url}: {e}")
-                _write_job(source, listing.title, listing.url, url_hash, role, None)
-                result.jobs_added += 1
-                continue
+                detail = None
 
             # Location filter — applied after detail fetch
             location = detail.location if detail else None
             if not location_is_targeted(location, target_locations):
                 result.jobs_filtered += 1
-                logger.info(f"[{source['company']}] Filtered (location={location}): {listing.title}")
+                logger.debug(f"[{source['company']}] Filtered (location={location}): {listing.title}")
                 continue
 
             # Department filter
             departments = detail.departments if detail else []
             if not department_is_targeted(departments, target_departments):
                 result.jobs_filtered += 1
-                logger.info(f"[{source['company']}] Filtered (dept={departments}): {listing.title}")
+                logger.debug(f"[{source['company']}] Filtered (dept={departments}): {listing.title}")
                 continue
 
-            _write_job(source, listing.title, listing.url, url_hash, role, detail)
+            scrape_status = _write_job(source, listing.title, listing.url, url_hash, role, detail)
             result.jobs_added += 1
             logger.info(f"[{source['company']}] Added ({role}, {location}): {listing.title}")
+
+            # Queue for Pass 2 if description not yet populated
+            if scrape_status == "pending":
+                pending_jobs.append((url_hash, listing))
+
+        # ── Pass 2: fetch full descriptions ──────────────────
+        if pending_jobs:
+            logger.info(f"[{source['company']}] Pass 2: fetching descriptions for {len(pending_jobs)} jobs")
+            for url_hash, listing in pending_jobs:
+                try:
+                    detail = await extractor.get_detail(listing)
+                    update_job_detail(url_hash, detail)
+                    status = "scraped" if detail and detail.description else "failed"
+                    logger.info(f"[{source['company']}] Pass 2 {status}: {listing.title}")
+                except Exception as e:
+                    logger.warning(f"[{source['company']}] Pass 2 failed for {listing.url}: {e}")
+                    _mark_failed(url_hash, str(e))
 
         _update_source_timestamp(source["id"])
         result.status = "success"
@@ -179,11 +200,23 @@ def _job_exists(url_hash: str) -> bool:
         return cursor.fetchone() is not None
 
 
-def _write_job(source: dict, title: str, url: str, url_hash: str, role: Optional[str], detail) -> None:
+def _write_job(source: dict, title: str, url: str, url_hash: str, role: Optional[str], detail) -> str:
+    """
+    Write a new job to the DB. Returns the scrape_status that was set:
+      'scraped'  — description already populated from Pass 1
+      'pending'  — no description yet, Pass 2 will fetch it
+    """
     from datetime import datetime
+    import json
 
-    scrape_status = "scraped" if detail and detail.description else "pending"
-    requirements  = None
+    has_description = bool(detail and detail.description and detail.description.strip())
+    scrape_status   = "scraped" if has_description else "pending"
+
+    # Fallback salary extraction from description when no structured field
+    salary = detail.salary if detail else None
+    if not salary and has_description:
+        salary = extract_salary(detail.description)
+    requirements    = None
     if detail and detail.requirements:
         requirements = json.dumps(detail.requirements)
 
@@ -202,13 +235,29 @@ def _write_job(source: dict, title: str, url: str, url_hash: str, role: Optional
                 detail.company if detail and detail.company else source["company"],
                 detail.location[:500] if detail and detail.location else None,
                 detail.job_type if detail else None,
-                detail.salary if detail else None,
-                detail.description[:5000] if detail and detail.description else None,
+                salary,
+                detail.description if has_description else None,
                 requirements,
                 role,
                 scrape_status,
-                datetime.utcnow() if detail else None,
+                datetime.utcnow() if has_description else None,
             )
+        )
+
+    return scrape_status
+
+
+def _mark_failed(url_hash: str, error: str) -> None:
+    """Mark a job as failed after a Pass 2 error."""
+    from datetime import datetime
+    with get_cursor() as cursor:
+        cursor.execute(
+            """UPDATE jobs SET
+                scrape_status = 'failed',
+                scrape_error  = %s,
+                scraped_at    = %s
+               WHERE url_hash = %s""",
+            (error[:500], datetime.utcnow(), url_hash),
         )
 
 

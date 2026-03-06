@@ -20,5 +20,8 @@ venv/
 .DS_Store
 Thumbs.db
 
+# Logs
+logs/
+
 # VS Code dev containers
 # .devcontainer/

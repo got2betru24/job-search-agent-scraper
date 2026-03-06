@@ -187,3 +187,131 @@ def department_is_targeted(departments: Optional[List[str]], target_departments:
         for keyword in target_departments
         for dept in departments_lower
     )
+
+
+def clean_html(raw: Optional[str]) -> Optional[str]:
+    """
+    Convert HTML to clean Markdown, or normalize plain text.
+    Returns None if the input is empty or None.
+
+    HTML conversion rules:
+      - h1/h2/h3/h4  -> ## Heading
+      - h5/h6        -> ### Heading
+      - li           -> - item
+      - strong/b     -> **text**
+      - em/i         -> *text*
+      - p/div/br     -> paragraph breaks
+      - All other tags stripped
+
+    Plain text (no HTML tags) is normalized only.
+    """
+    if not raw or not raw.strip():
+        return None
+
+    from bs4 import BeautifulSoup, NavigableString
+    from html import unescape
+
+    # Decode HTML entities before parsing (e.g. Greenhouse returns &lt;div&gt; encoded)
+    raw = unescape(raw)
+
+    if not re.search(r"<[a-zA-Z]", raw):
+        text = re.sub(r"[ \t]{2,}", " ", raw)
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        # Detect implicit section headers in plain text —
+        # short phrases ending in : that follow a sentence boundary or newline.
+        # e.g. "What you'll be doing:" -> "\n\n## What you'll be doing\n"
+        # Also catch a title-case phrase on its own line (e.g. "About the Role")
+        text = re.sub(
+            r"(?:^|(?<=[.?!])\s{1,2})((?:[A-Z][^.?!:\n]{3,55}?)):\s+(?=[A-Z])",
+            lambda m: "\n\n## " + m.group(1).strip() + "\n\n",
+            text
+        )
+        # Standalone title-case line with no colon (e.g. "About the Role\n")
+        text = re.sub(
+            r"(?:^|\n)([A-Z][A-Za-z ,']{3,50})\n(?=[A-Z])",
+            lambda m: "\n\n## " + m.group(1).strip() + "\n\n",
+            text
+        )
+        text = re.sub(r"\n{3,}", "\n\n", text)
+        return text.strip() or None
+
+    soup = BeautifulSoup(raw, "html.parser")
+
+    def node_to_md(node) -> str:
+        if isinstance(node, NavigableString):
+            return str(node)
+        tag = node.name
+        children = "".join(node_to_md(c) for c in node.children)
+        cs = children.strip()
+        if tag in ("h1", "h2", "h3", "h4"):
+            return "\n\n## " + cs + "\n\n"
+        if tag in ("h5", "h6"):
+            return "\n\n### " + cs + "\n\n"
+        if tag in ("strong", "b"):
+            return "**" + cs + "**" if cs else ""
+        if tag in ("em", "i"):
+            return "*" + cs + "*" if cs else ""
+        if tag == "li":
+            return "\n- " + cs
+        if tag in ("ul", "ol"):
+            return "\n" + children + "\n"
+        if tag in ("p", "div"):
+            return "\n\n" + cs + "\n\n" if cs else ""
+        if tag == "br":
+            return "\n"
+        if tag in ("script", "style"):
+            return ""
+        return children
+
+    md = node_to_md(soup)
+    md = re.sub(r"\n{3,}", "\n\n", md)
+    md = re.sub(r"[ \t]{2,}", " ", md)
+    return md.strip() or None
+
+
+def extract_salary(description: Optional[str]) -> Optional[str]:
+    """
+    Best-effort salary extraction from job description text.
+    Only called when no structured salary field is available.
+
+    Matches common patterns:
+      $120,000 - $150,000
+      $120K-$150K
+      $120k to $150k
+      $120,000+
+      $150,000/year
+    Skips hourly rates ($/hour, $/hr).
+    """
+    if not description:
+        return None
+
+    # Normalize — remove markdown bold markers for cleaner matching
+    text = re.sub(r"\*{1,2}", "", description)
+
+    # Skip hourly — match $/hr or $/hour anywhere near a dollar amount
+    hourly = re.compile(r"\$[\d,K k]+\s*(?:/\s*h(?:ou?r|r)?)", re.I)
+
+    # Main salary pattern — dollar sign + digits/commas/K suffix
+    # Handles ranges with - / to / – and single values with optional +
+    pattern = re.compile(
+        r"(\$[\d,]+[Kk]?)"           # lower bound e.g. $120,000 or $120K
+        r"(?:"                          # optional range
+        r"\s*(?:--|–|-|to)\s*"        # separator (-- handles Adobe style)
+        r"(\$[\d,]+[Kk]?)"           # upper bound
+        r"|\+)?",                      # or just a + for open-ended
+        re.I
+    )
+
+    for match in pattern.finditer(text):
+        full = match.group(0).strip()
+        # Skip if this looks like an hourly rate
+        surrounding = text[match.start():match.end() + 20]
+        if hourly.search(surrounding):
+            continue
+        # Must have at least 4 digits to avoid matching e.g. "$5"
+        digits = re.sub(r"[^\d]", "", full)
+        if len(digits) < 4:
+            continue
+        return full
+
+    return None

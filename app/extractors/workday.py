@@ -4,12 +4,16 @@ Workday Extractor
 Workday does not expose a public API, but uses an internal CXS API
 that can be called directly without JS rendering.
 
-API endpoint pattern:
+Listing API endpoint pattern:
   POST https://{company}.wd{N}.myworkdayjobs.com/wday/cxs/{company}/{board}/jobs
 
 URL facet parameters (locations, timeType, jobFamilyGroup, etc.) are passed
 directly as appliedFacets in the POST body — enabling pre-filtered results
 that match what the user sees in their bookmarked URL.
+
+Detail: human-facing HTML page — {base_url}/en-US/{board}/job/{slug}_{id}
+  Pass 1 returns title + location from the CXS listing API (no description).
+  Pass 2 fetches the HTML job page and parses the embedded JSON-LD for full description.
 
 Pagination uses limit/offset with a default page size of 20.
 """
@@ -20,6 +24,7 @@ from typing import List, Dict, Optional
 from urllib.parse import urlparse, parse_qs
 from app.base import BaseExtractor
 from app.models import JobListing, JobDetail
+from app.utils import clean_html
 
 
 # Workday facet param names that map directly to appliedFacets
@@ -44,6 +49,7 @@ class WorkdayExtractor(BaseExtractor):
 
     def __init__(self):
         self._detail_cache: Dict[str, JobDetail] = {}
+        self._board_cache: Dict[str, str] = {}  # url -> board name
 
     def _parse_url(self, source_url: str) -> tuple[str, str, str, dict]:
         """
@@ -55,19 +61,16 @@ class WorkdayExtractor(BaseExtractor):
             board     — e.g. 'Zillow_Group_External'
             facets    — dict of appliedFacets extracted from query params
         """
-        parsed  = urlparse(source_url)
-        host    = parsed.netloc  # zillow.wd5.myworkdayjobs.com
+        parsed = urlparse(source_url)
+        host   = parsed.netloc
 
-        # Extract company and board
         # Pattern 1: {company}.wd{N}.myworkdayjobs.com (standard)
         match = re.match(r"([^.]+)\.(wd\d+)\.myworkday(?:jobs|site)\.com", host)
 
         if match:
             company  = match.group(1)
             base_url = f"https://{host}"
-            # Board name — strip known prefixes (/en-US/, /recruiting/{company}/)
             path_parts = [p for p in parsed.path.strip("/").split("/") if p and p not in ("en-US", "recruiting")]
-            # Skip the company slug if it appears as the first path segment after /recruiting/
             if path_parts and path_parts[0].lower() == company.lower():
                 path_parts = path_parts[1:]
             board = path_parts[0] if path_parts else company
@@ -78,7 +81,6 @@ class WorkdayExtractor(BaseExtractor):
                 raise ValueError(f"Could not parse Workday URL: {source_url}")
             base_url   = f"https://{host}"
             path_parts = [p for p in parsed.path.strip("/").split("/") if p and p not in ("en-US", "recruiting")]
-            # path_parts[0] = company slug, path_parts[1] = board
             if len(path_parts) >= 2:
                 company = path_parts[0]
                 board   = path_parts[1]
@@ -97,6 +99,47 @@ class WorkdayExtractor(BaseExtractor):
 
         return base_url, company, board, facets
 
+    def _parse_job_url(self, job_url: str) -> Optional[tuple[str, str, str, str]]:
+        """
+        Parse a Workday job detail URL into API components.
+
+        Handles both URL patterns:
+          Standard:     {company}.wd{N}.myworkdayjobs.com/.../{board}/job/{jobId}
+          Fidelity:     wd{N}.myworkdaysite.com/recruiting/{company}/{board}/job/{jobId}
+
+        Returns:
+            (base_url, company, board, job_path) or None if unparseable
+        """
+        parsed     = urlparse(job_url)
+        host       = parsed.netloc
+        path_parts = [p for p in parsed.path.strip("/").split("/") if p]
+
+        # Find the 'job' segment index — board is immediately before it
+        try:
+            job_idx  = path_parts.index("job")
+            job_path = "/" + "/".join(path_parts[job_idx:])
+        except ValueError:
+            return None
+
+        # Pattern 1: standard
+        match = re.match(r"([^.]+)\.(wd\d+)\.myworkday(?:jobs|site)\.com", host)
+        if match:
+            company = match.group(1)
+            board   = path_parts[job_idx - 1] if job_idx > 0 else company
+            return f"https://{host}", company, board, job_path
+
+        # Pattern 2: Fidelity-style
+        match2 = re.match(r"(wd\d+)\.myworkday(?:jobs|site)\.com", host)
+        if match2:
+            # path: recruiting/{company}/{board}/job/{jobId}
+            clean_parts = [p for p in path_parts if p not in ("recruiting", "en-US")]
+            if len(clean_parts) >= 2:
+                company = clean_parts[0]
+                board   = clean_parts[1]
+                return f"https://{host}", company, board, job_path
+
+        return None
+
     async def get_listings(self, source_url: str) -> List[JobListing]:
         try:
             base_url, company, board, facets = self._parse_url(source_url)
@@ -108,6 +151,14 @@ class WorkdayExtractor(BaseExtractor):
             "Accept":       "application/json",
             "Content-Type": "application/json",
         }
+
+        # For Fidelity-style URLs the job URL needs the full path including
+        # company and board: base_url/recruiting/{company}/{board}/job/...
+        # For standard URLs: base_url + externalPath is sufficient since
+        # externalPath already includes the board prefix.
+        parsed_source  = urlparse(source_url)
+        is_site_domain = "myworkdaysite.com" in parsed_source.netloc and not re.match(r"[^.]+\.wd\d+\.myworkdaysite", parsed_source.netloc)
+        job_url_prefix = f"{base_url}/recruiting/{company}/{board}" if is_site_domain else base_url
 
         listings = []
         offset   = 0
@@ -134,11 +185,10 @@ class WorkdayExtractor(BaseExtractor):
                 if not title or not external_path:
                     continue
 
-                url = f"{base_url}{external_path}"
+                url = f"{job_url_prefix}{external_path}"
 
-                # Build detail from listing data
-                # "2 Locations" / "3 Locations" means multiple locations —
-                # treat as None so location_is_targeted() lets it through
+                # "2 Locations" / "3 Locations" — treat as None so
+                # location_is_targeted() lets it through for Pass 2 to resolve
                 loc_text = job.get("locationsText", "")
                 location = None if re.match(r"^\d+ Locations?$", loc_text, re.I) else loc_text or None
 
@@ -148,6 +198,8 @@ class WorkdayExtractor(BaseExtractor):
                     location=location,
                 )
                 self._detail_cache[url] = detail
+                # Store board so _fetch_detail_page can construct the HTML URL
+                self._board_cache[url] = board
                 listings.append(JobListing(title=title, url=url))
 
             offset += PAGE_SIZE
@@ -158,109 +210,98 @@ class WorkdayExtractor(BaseExtractor):
 
     async def get_detail(self, listing: JobListing) -> JobDetail:
         """
-        Fetch full job detail from the Workday job page JSON-LD.
-        Falls back to cached listing data if detail fetch fails.
+        Fetch full job detail from the Workday CXS detail API.
+        Falls back to cached listing data (title + location) if fetch fails.
         """
-        if listing.url in self._detail_cache:
-            cached = self._detail_cache[listing.url]
-            # If we already have a full description, return it
-            if cached.description:
-                return cached
+        detail = await self._fetch_detail_page(listing)
+        if detail:
+            return detail
 
-        # Try fetching the detail page for full description
-        try:
-            detail = await self._fetch_detail_page(listing)
-            if detail:
-                return detail
-        except Exception:
-            pass
-
-        # Fall back to cached listing data
+        # Fall back to cached listing data (no description, but location preserved)
         return self._detail_cache.get(
             listing.url,
             JobDetail(title=listing.title, url=listing.url)
         )
 
     async def _fetch_detail_page(self, listing: JobListing) -> Optional[JobDetail]:
-        """Try to extract job detail from the Workday job detail API."""
-        # Workday detail API pattern:
-        # POST https://{company}.wd{N}.myworkdayjobs.com/wday/cxs/{company}/{board}/jobs/{path}
-        parsed  = urlparse(listing.url)
-        host    = parsed.netloc
-        match   = re.match(r"([^.]+)\.(wd\d+)\.myworkday(?:jobs|site)\.com", host)
-        if not match:
+        """
+        Fetch job detail by scraping the human-facing Workday job page and
+        parsing the JSON-LD block embedded for SEO.
+
+        URL pattern: {base_url}/en-US/{board}/job/{slug}_{id}
+        Constructed from base_url + board (stored during get_listings) +
+        the /job/... path extracted from the listing URL.
+        """
+        parsed = self._parse_job_url(listing.url)
+        if not parsed:
             return None
 
-        company    = match.group(1)
-        path_parts = [p for p in parsed.path.strip("/").split("/") if p]
+        base_url, company, board_from_url, job_path = parsed
 
-        # Find board — it's the segment before /job/
+        # Prefer board stored during get_listings — more reliable than URL parse
+        board = self._board_cache.get(listing.url, board_from_url)
+
+        html_url = f"{base_url}/en-US/{board}{job_path}"
+
         try:
-            job_idx = path_parts.index("job")
-            board   = path_parts[job_idx - 1] if job_idx > 0 else company
-            job_path = "/" + "/".join(path_parts[job_idx:])
-        except ValueError:
+            html = await self.fetch(html_url)
+        except Exception:
             return None
 
-        api_url = f"https://{host}/wday/cxs/{company}/{board}/jobs{job_path}"
-        headers = {"Accept": "application/json", "Content-Type": "application/json"}
-
-        data = await self.fetch_json(api_url, method="GET", headers=headers)
-        if not data:
+        if not html:
             return None
 
-        # Workday detail response wraps job in jobPostingInfo
-        job = data.get("jobPostingInfo", data)
-        if not job:
+        # Parse JSON-LD block embedded by Workday for SEO
+        matches = re.findall(
+            r'<script[^>]*type="application/ld\+json"[^>]*>(.*?)</script>',
+            html, re.DOTALL
+        )
+        if not matches:
             return None
 
-        description = job.get("jobDescription", "") or job.get("description", "")
-        location    = job.get("location") or self._detail_cache.get(listing.url, JobDetail(title="", url="")).location
+        try:
+            data = json.loads(matches[0])
+        except (json.JSONDecodeError, IndexError):
+            return None
+
+        description = data.get("description", "") or ""
+
+        # Location from JSON-LD address
+        # If jobLocationType is TELECOMMUTE, append "Remote, US" so the
+        # location_is_targeted() remote keywords match even for jobs with a
+        # physical office city listed as the primary location.
+        cached   = self._detail_cache.get(listing.url)
+        location = None
+        loc      = data.get("jobLocation", {})
+        if isinstance(loc, dict):
+            addr     = loc.get("address", {})
+            locality = addr.get("addressLocality", "")
+            parts    = [p for p in [locality] if p]
+            location = ", ".join(parts) or None
+        if data.get("jobLocationType") == "TELECOMMUTE":
+            location = f"{location} | Remote, US" if location else "Remote, US"
+        if not location and cached:
+            location = cached.location
+
+        # Salary from JSON-LD baseSalary (present when company chooses to disclose)
+        salary = None
+        comp = data.get("baseSalary", {})
+        if isinstance(comp, dict):
+            val      = comp.get("value", {})
+            min_v    = val.get("minValue")
+            max_v    = val.get("maxValue")
+            currency = comp.get("currency", "USD")
+            unit     = val.get("unitText", "")
+            if min_v and max_v:
+                salary = f"{currency} {int(min_v):,}–{int(max_v):,}"
+                if unit:
+                    salary += f" / {unit.lower()}"
 
         return JobDetail(
             title=listing.title,
             url=listing.url,
             location=location,
-            job_type=job.get("timeType") or job.get("employmentType"),
-            description=description[:5000] if description else None,
-        )
-
-    def _parse_jsonld(self, data: dict, url: str) -> JobDetail:
-        """Parse schema.org JobPosting JSON-LD (fallback)."""
-        from bs4 import BeautifulSoup
-
-        description = ""
-        raw = data.get("description", "")
-        if raw:
-            description = BeautifulSoup(raw, "html.parser").get_text(
-                separator="\n", strip=True
-            )
-
-        location = None
-        loc = data.get("jobLocation", {})
-        if isinstance(loc, dict):
-            addr    = loc.get("address", {})
-            city    = addr.get("addressLocality", "")
-            state   = addr.get("addressRegion", "")
-            country = addr.get("addressCountry", "")
-            parts   = [p for p in [city, state, country] if p]
-            location = ", ".join(parts) or None
-
-        salary = None
-        comp = data.get("baseSalary", {})
-        if comp:
-            val      = comp.get("value", {})
-            min_v    = val.get("minValue")
-            max_v    = val.get("maxValue")
-            currency = comp.get("currency", "USD")
-            if min_v and max_v:
-                salary = f"{currency} {int(min_v):,}–{int(max_v):,}"
-
-        return JobDetail(
-            title=data.get("title", "").strip(),
-            url=url,
-            location=location,
             job_type=data.get("employmentType"),
             salary=salary,
-            description=description[:5000] if description else None,
+            description=description.strip() or None,
         )

@@ -20,6 +20,7 @@ import re
 from typing import List, Dict
 from app.base import BaseExtractor
 from app.models import JobListing, JobDetail
+from app.utils import clean_html
 
 
 class GreenhouseExtractor(BaseExtractor):
@@ -63,19 +64,16 @@ class GreenhouseExtractor(BaseExtractor):
             if not title or not url:
                 continue
 
-            # Cache the full detail now since we already have it
             self._detail_cache[url] = self._parse_detail(job)
             listings.append(JobListing(title=title, url=url))
 
         return listings
 
     async def get_detail(self, listing: JobListing) -> JobDetail:
-        # Return from cache populated during get_listings()
         if listing.url in self._detail_cache:
             return self._detail_cache[listing.url]
 
         # Fallback: fetch individual job by ID if not cached
-        # Greenhouse job URLs look like: .../jobs/{id}
         match = re.search(r"/jobs/(\d+)", listing.url)
         if not match:
             return JobDetail(title=listing.title, url=listing.url)
@@ -94,20 +92,11 @@ class GreenhouseExtractor(BaseExtractor):
 
     def _parse_detail(self, job: dict) -> JobDetail:
         """Parse a Greenhouse job object into a JobDetail."""
-        # Extract plain text from HTML description
-        description = ""
-        raw_content = job.get("content", "") or ""
-        if raw_content:
-            from bs4 import BeautifulSoup
-            description = BeautifulSoup(raw_content, "html.parser").get_text(
-                separator="\n", strip=True
-            )
+        description = clean_html(job.get("content", ""))
 
-        # Location — combine primary + otherLocations into one pipe-separated string
-        # so location_is_targeted() can match against any of them
+        # Location — combine primary + otherLocations into pipe-separated string
         location_parts = []
-
-        loc = job.get("location", {})
+        loc     = job.get("location", {})
         primary = loc.get("name") if isinstance(loc, dict) else (loc if isinstance(loc, str) else None)
         if primary:
             location_parts.append(primary.strip())
@@ -126,12 +115,10 @@ class GreenhouseExtractor(BaseExtractor):
             if d.get("name")
         ]
 
-        # Requirements — Greenhouse doesn't separate these, they're in the
-        # description HTML. Claude will parse them out in a future phase.
         return JobDetail(
             title=job.get("title", "").strip(),
             url=job.get("absolute_url", "").strip(),
             location=location,
             departments=departments,
-            description=description[:5000] if description else None,
+            description=description,
         )

@@ -22,6 +22,11 @@ Encoding:
 
 Job URL pattern:
   https://careers.oracle.com/en/sites/jobsearch/jobs/preview/{Id}
+
+Pass 1 returns title + location + ShortDescriptionStr from the listing API.
+Full descriptions require a JS-rendered browser (Playwright) — not yet built.
+Jobs are marked 'scraped' with the short description rather than 'pending',
+since the detail page is inaccessible without Playwright.
 """
 
 import re
@@ -34,7 +39,7 @@ import httpx
 
 from app.base import BaseExtractor
 from app.models import JobListing, JobDetail
-from app.utils import DEFAULT_HEADERS
+from app.utils import DEFAULT_HEADERS, clean_html
 
 
 PAGE_SIZE = 24  # matches the hardcoded limit in Oracle's JS bundle
@@ -203,7 +208,7 @@ class OracleExtractor(BaseExtractor):
                     title=title,
                     url=url,
                     location=location,
-                    description=(job.get("ShortDescriptionStr") or "")[:5000] or None,
+                    description=clean_html(job.get("ShortDescriptionStr") or ""),
                 )
                 self._detail_cache[url] = detail
                 listings.append(JobListing(title=title, url=url))
@@ -215,7 +220,11 @@ class OracleExtractor(BaseExtractor):
         return listings
 
     async def get_detail(self, listing: JobListing) -> JobDetail:
-        """Return cached detail from listing API."""
+        """
+        Return cached detail from listing API.
+        Full descriptions require Playwright (JS-rendered pages) — not yet built.
+        ShortDescriptionStr from Pass 1 is used as the description for now.
+        """
         if listing.url in self._detail_cache:
             return self._detail_cache[listing.url]
         return JobDetail(title=listing.title, url=listing.url)

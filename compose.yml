@@ -12,6 +12,7 @@ services:
       target: scraper-dev
     volumes:
       - ./app:/app/scraper/app
+      - ./logs:/app/scraper/logs
     env_file:
       - .env
     environment:
