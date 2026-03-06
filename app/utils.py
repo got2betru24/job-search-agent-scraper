@@ -211,6 +211,15 @@ def clean_html(raw: Optional[str]) -> Optional[str]:
     from bs4 import BeautifulSoup, NavigableString
     from html import unescape
 
+    # Normalize encoding — replace Windows-1252 curly quotes/dashes that
+    # sneak in from some Workday sources as mojibake (e.g. worlds -> world's)
+    # Try decoding as Windows-1252 first to recover curly quotes/apostrophes,
+    # then re-encode to clean UTF-8
+    try:
+        raw = raw.encode("latin-1").decode("windows-1252")
+    except (UnicodeEncodeError, UnicodeDecodeError):
+        pass
+
     # Decode HTML entities before parsing (e.g. Greenhouse returns &lt;div&gt; encoded)
     raw = unescape(raw)
 
@@ -230,6 +239,13 @@ def clean_html(raw: Optional[str]) -> Optional[str]:
         text = re.sub(
             r"(?:^|\n)([A-Z][A-Za-z ,']{3,50})\n(?=[A-Z])",
             lambda m: "\n\n## " + m.group(1).strip() + "\n\n",
+            text
+        )
+        # ALL-CAPS section headers inline in text (e.g. "POSITION SUMMARY Blah...")
+        # Must be 2+ words, all caps, followed by a capital letter starting body text
+        text = re.sub(
+            r"(?<![A-Z])([A-Z]{2,}(?:\s+[A-Z&]{2,})+)\s+(?=[A-Z][a-z])",
+            lambda m: "\n\n## " + m.group(1).strip().title() + "\n\n",
             text
         )
         text = re.sub(r"\n{3,}", "\n\n", text)
@@ -296,7 +312,7 @@ def extract_salary(description: Optional[str]) -> Optional[str]:
     pattern = re.compile(
         r"(\$[\d,]+[Kk]?)"           # lower bound e.g. $120,000 or $120K
         r"(?:"                          # optional range
-        r"\s*(?:--|–|-|to)\s*"        # separator (-- handles Adobe style)
+        r"\s*(?:--|—|–|-|to)\s*"      # separator (--, em-dash, en-dash, hyphen)
         r"(\$[\d,]+[Kk]?)"           # upper bound
         r"|\+)?",                      # or just a + for open-ended
         re.I
@@ -313,5 +329,25 @@ def extract_salary(description: Optional[str]) -> Optional[str]:
         if len(digits) < 4:
             continue
         return full
+
+    # Secondary pattern — no dollar sign, but followed by USD
+    # e.g. "224,000 USD - 356,500 USD" or "224,000 - 356,500 USD"
+    usd_pattern = re.compile(
+        r"([\d,]+)"                         # lower bound
+        r"(?:\s*USD)?"                      # optional USD
+        r"\s*(?:--|\u2014|\u2013|-|to)\s*"  # separator
+        r"([\d,]+)"                         # upper bound
+        r"(?:\s*USD)?",                     # optional USD
+        re.I
+    )
+    for match in usd_pattern.finditer(text):
+        # Confirm USD appears near the match
+        surrounding = text[match.start():match.end() + 10]
+        if "usd" not in surrounding.lower():
+            continue
+        digits = re.sub(r"[^\d]", "", match.group(0))
+        if len(digits) < 4:
+            continue
+        return match.group(0).strip()
 
     return None

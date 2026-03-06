@@ -158,7 +158,12 @@ class WorkdayExtractor(BaseExtractor):
         # externalPath already includes the board prefix.
         parsed_source  = urlparse(source_url)
         is_site_domain = "myworkdaysite.com" in parsed_source.netloc and not re.match(r"[^.]+\.wd\d+\.myworkdaysite", parsed_source.netloc)
-        job_url_prefix = f"{base_url}/recruiting/{company}/{board}" if is_site_domain else base_url
+        if is_site_domain:
+            # Fidelity-style: base_url/recruiting/{company}/{board}/job/...
+            job_url_prefix = f"{base_url}/recruiting/{company}/{board}"
+        else:
+            # Standard Workday: base_url/en-US/{board}/job/...
+            job_url_prefix = f"{base_url}/en-US/{board}"
 
         listings = []
         offset   = 0
@@ -264,7 +269,7 @@ class WorkdayExtractor(BaseExtractor):
         except (json.JSONDecodeError, IndexError):
             return None
 
-        description = data.get("description", "") or ""
+        description = clean_html(data.get("description", "") or "")
 
         # Location from JSON-LD address
         # If jobLocationType is TELECOMMUTE, append "Remote, US" so the
