@@ -37,10 +37,10 @@ def title_matches_filters(title: str, filters: Optional[List[str]]) -> bool:
 _ROLE_RULES: List[tuple[str, str]] = [
     # Engineering Manager / Director — check before IC rules
     (r"engineering manager",                                                                          "engineering_manager"),
-    (r"(manager|mgr)[,\s].*(engineer|tech|cloud|platform|infrastructure|data|ml|ai|analytics|software|intelligence|devinfra|ci.cd|system)",      "engineering_manager"),
-    (r"(sr\.?\s*|senior\s*)(manager|mgr).*(engineer|tech|cloud|platform|infrastructure|data|ml|ai|analytics|software|intelligence|devinfra|ci.cd|system)", "engineering_manager"),
-    (r"(engineer|tech|cloud|platform|infrastructure|data|ml|ai|analytics|software|intelligence|devinfra|system).*(manager|mgr)",           "engineering_manager"),
-    (r"director.*(engineer|tech|product|data|analytics|platform|cloud|software|architecture|infrastructure|ml|ai)",                             "engineering_manager"),
+    (r"(manager|mgr)[,\s].*(engineer|tech|cloud|platform|infrastructure|data|machine learning|ml|ai|analytics|software|intelligence|devinfra|ci.cd|system)",      "engineering_manager"),
+    (r"(sr\.?\s*|senior\s*)(manager|mgr).*(engineer|tech|cloud|platform|infrastructure|data|machine learning|ml|ai|analytics|software|intelligence|devinfra|ci.cd|system)", "engineering_manager"),
+    (r"(engineer|tech|cloud|platform|infrastructure|data|machine learning|ml|ai|analytics|software|intelligence|devinfra|system).*(manager|mgr)",           "engineering_manager"),
+    (r"director.*(engineer|tech|product|data|analytics|platform|cloud|software|architecture|infrastructure|machine learning|ml|ai)",                             "engineering_manager"),
     (r"vp.*(engineer|tech)",                                                                         "engineering_manager"),
     (r"head of engineer",                                                                            "engineering_manager"),
 
@@ -56,8 +56,8 @@ _ROLE_RULES: List[tuple[str, str]] = [
     (r"engineer",                           "engineer"),
     (r"developer",                          "engineer"),
     (r"architect",                          "engineer"),
-    (r"data scientist",                     "engineer"),
-    (r"data analyst",                       "engineer"),
+    (r"scientist",                          "engineer"),
+    (r"analyst",                            "engineer"),
     (r"analytics",                          "engineer"),
 ]
 
@@ -310,10 +310,10 @@ def extract_salary(description: Optional[str]) -> Optional[str]:
     # Main salary pattern — dollar sign + digits/commas/K suffix
     # Handles ranges with - / to / – and single values with optional +
     pattern = re.compile(
-        r"(\$[\d,]+[Kk]?)"           # lower bound e.g. $120,000 or $120K
+        r"(\$[\d,]+(?:\.\d+)?[Kk]?)"  # lower bound e.g. $120,000 or $173,600.00
         r"(?:"                          # optional range
         r"\s*(?:--|—|–|-|to)\s*"      # separator (--, em-dash, en-dash, hyphen)
-        r"(\$[\d,]+[Kk]?)"           # upper bound
+        r"(\$[\d,]+(?:\.\d+)?[Kk]?)"           # upper bound
         r"|\+)?",                      # or just a + for open-ended
         re.I
     )

@@ -16,9 +16,15 @@ Usage:
     python3 discover.py bamboohr
     python3 discover.py all
 
+    # Greenhouse-specific: fetch department IDs without scraping all jobs
+    python3 discover.py greenhouse-departments
+
 Output:
     A consolidated report of unique locations and departments
     across all matching sources, with per-company breakdown.
+
+    For greenhouse-departments: department names + IDs ready to use as
+    ?department_id= params in your source URL.
 """
 
 import sys
@@ -30,6 +36,7 @@ sys.path.insert(0, "/app/scraper")
 
 from app.database import get_cursor
 from app.registry import get_extractor
+from app.base import BaseExtractor
 
 
 async def discover_source(source: dict) -> dict:
@@ -71,6 +78,94 @@ async def discover_source(source: dict) -> dict:
         result["error"] = str(e)
 
     return result
+
+
+async def discover_greenhouse_departments(source: dict) -> dict:
+    """
+    Fetch department list directly from the Greenhouse departments endpoint.
+    Much faster than fetching all jobs — no job scraping needed.
+
+    Returns department names + IDs for use as ?department_id= source URL params.
+    """
+    import re
+    # from app.base import BaseExtractor
+
+    result = {
+        "company":     source["company"],
+        "url":         source["url"],
+        "departments": [],  # list of (id, name, job_count) tuples
+        "error":       None,
+    }
+
+    # Extract slug from source URL (same logic as GreenhouseExtractor)
+    url = source["url"]
+    match = re.search(r"boards\.greenhouse\.io/([^/?#]+)", url)
+    if not match:
+        match = re.search(r"([^/.]+)\.greenhouse\.io", url)
+    if not match:
+        result["error"] = "Could not extract Greenhouse slug from URL"
+        return result
+
+    slug = match.group(1)
+    api_url = f"https://boards-api.greenhouse.io/v1/boards/{slug}/departments"
+
+    try:
+        # extractor = BaseExtractor()
+        # data = await extractor.fetch_json(api_url)
+        import httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.get(api_url)
+            response.raise_for_status()
+            data = response.json()
+        if not data or "departments" not in data:
+            result["error"] = "No departments returned"
+            return result
+
+        for dept in data["departments"]:
+            dept_id   = dept.get("id")
+            name      = dept.get("name", "").strip()
+            job_count = len(dept.get("jobs", []))
+            if dept_id and name:
+                result["departments"].append((dept_id, name, job_count))
+
+        result["departments"].sort(key=lambda x: x[1])  # sort by name
+
+    except Exception as e:
+        result["error"] = str(e)
+
+    return result
+
+
+def print_greenhouse_departments_report(results: list[dict]):
+    """Print department IDs for all Greenhouse sources."""
+    print()
+    print("=" * 70)
+    print("  GREENHOUSE DEPARTMENT IDs")
+    print("=" * 70)
+    print()
+    print("  Use these IDs to filter source URLs:")
+    print("  e.g. https://boards.greenhouse.io/airbnb?department_id=123&department_id=456")
+    print()
+
+    for r in results:
+        print(f"  {r['company']}")
+        print(f"  URL: {r['url'][:70]}")
+
+        if r["error"]:
+            print(f"  ERROR: {r['error']}")
+            print()
+            continue
+
+        if not r["departments"]:
+            print("  No departments found")
+            print()
+            continue
+
+        print(f"  {'ID':<12} {'Jobs':<6} Name")
+        print(f"  {'-'*12} {'-'*6} {'-'*30}")
+        for dept_id, name, job_count in r["departments"]:
+            print(f"  {dept_id:<12} {job_count:<6} {name}")
+        print()
 
 
 def print_report(results: list[dict], extractor_type: str):
@@ -143,6 +238,29 @@ def print_report(results: list[dict], extractor_type: str):
 async def main():
     extractor_type = sys.argv[1].lower() if len(sys.argv) > 1 else "greenhouse"
 
+    # ── Greenhouse departments mode ──────────────────────────────────────
+    if extractor_type == "greenhouse-departments":
+        with get_cursor() as cursor:
+            cursor.execute(
+                "SELECT * FROM sources WHERE active = TRUE AND extractor_type = 'greenhouse' ORDER BY company"
+            )
+            sources = cursor.fetchall()
+
+        if not sources:
+            print("No active Greenhouse sources found.")
+            sys.exit(1)
+
+        print(f"Fetching departments for {len(sources)} Greenhouse source(s)...")
+        results = []
+        for source in sources:
+            print(f"  Fetching {source['company']}...", flush=True)
+            result = await discover_greenhouse_departments(source)
+            results.append(result)
+
+        print_greenhouse_departments_report(results)
+        return
+
+    # ── Standard discovery mode ──────────────────────────────────────────
     with get_cursor() as cursor:
         if extractor_type == "all":
             cursor.execute(

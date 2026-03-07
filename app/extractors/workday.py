@@ -16,6 +16,13 @@ Detail: human-facing HTML page — {base_url}/en-US/{board}/job/{slug}_{id}
   Pass 2 fetches the HTML job page and parses the embedded JSON-LD for full description.
 
 Pagination uses limit/offset with a default page size of 20.
+
+Multi-location jobs:
+  When locationsText is "N Locations", Workday bakes one city into the externalPath
+  but the job actually exists at multiple locations. We resolve this by making a
+  secondary CXS call (searchText=jobId, no facets) and reading the locations facet
+  values. Any location matching TARGET_LOCATIONS gets its own JobListing with a
+  reconstructed URL using the matched city slug.
 """
 
 import json
@@ -24,7 +31,7 @@ from typing import List, Dict, Optional
 from urllib.parse import urlparse, parse_qs
 from app.base import BaseExtractor
 from app.models import JobListing, JobDetail
-from app.utils import clean_html
+from app.utils import clean_html, get_target_locations, location_is_targeted
 
 
 # Workday facet param names that map directly to appliedFacets
@@ -40,6 +47,7 @@ KNOWN_FACETS = {
     "jobFamily",
     "departments",
     "category",
+    "remoteType"
 }
 
 PAGE_SIZE = 20
@@ -50,6 +58,7 @@ class WorkdayExtractor(BaseExtractor):
     def __init__(self):
         self._detail_cache: Dict[str, JobDetail] = {}
         self._board_cache: Dict[str, str] = {}  # url -> board name
+        self._api_url_cache: Dict[str, str] = {}  # url -> CXS api_url (for multi-loc lookups)
 
     def _parse_url(self, source_url: str) -> tuple[str, str, str, dict]:
         """
@@ -140,6 +149,97 @@ class WorkdayExtractor(BaseExtractor):
 
         return None
 
+    def _extract_job_id(self, external_path: str) -> Optional[str]:
+        """
+        Extract the Workday job ID from an externalPath.
+        e.g. /job/San-Jose/Principal-Product-Manager_R164308 -> R164308
+        """
+        match = re.search(r"_([A-Z0-9]+)$", external_path.rstrip("/"))
+        return match.group(1) if match else None
+
+    def _slugify_location(self, descriptor: str) -> str:
+        """
+        Convert a Workday location descriptor to a URL slug.
+        e.g. "San Jose" -> "San-Jose", "Lehi" -> "Lehi"
+        """
+        return re.sub(r"\s+", "-", descriptor.strip())
+
+    def _reconstruct_url(self, original_path: str, job_url_prefix: str, new_city_slug: str) -> str:
+        """
+        Replace the city slug in a Workday externalPath with a new one.
+        e.g. /job/San-Jose/Principal-Product-Manager_R164308
+          -> {prefix}/job/Lehi/Principal-Product-Manager_R164308
+        """
+        new_path = re.sub(
+            r"^(/job/)[^/]+(/)",
+            rf"\g<1>{new_city_slug}\2",
+            original_path
+        )
+        return f"{job_url_prefix}{new_path}"
+
+    async def _resolve_multi_location_urls(
+        self,
+        api_url: str,
+        job_id: str,
+        external_path: str,
+        job_url_prefix: str,
+        target_locations: Optional[List[str]],
+    ) -> List[tuple[str, str]]:
+        """
+        For a multi-location job, fetch all location variants via a secondary
+        CXS call (searchText=jobId, no facets) and return (url, location_descriptor)
+        tuples for any location that matches target_locations.
+
+        Falls back to an empty list on any error — caller will use original URL.
+        """
+        try:
+            payload = {
+                "appliedFacets": {},
+                "limit": 20,
+                "offset": 0,
+                "searchText": job_id,
+            }
+            headers = {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+            }
+            data = await self.fetch_json(api_url, method="POST", json=payload, headers=headers)
+            if not data:
+                return []
+
+            # Walk the nested facets to find the locations facet
+            locations_values = []
+            for facet in data.get("facets", []):
+                # Top-level locations facet
+                if facet.get("facetParameter") == "locations":
+                    locations_values = facet.get("values", [])
+                    break
+                # Nested under locationMainGroup
+                for nested in facet.get("values", []):
+                    if isinstance(nested, dict) and nested.get("facetParameter") == "locations":
+                        locations_values = nested.get("values", [])
+                        break
+                if locations_values:
+                    break
+
+            if not locations_values:
+                return []
+
+            results = []
+            for loc in locations_values:
+                descriptor = loc.get("descriptor", "")
+                if not descriptor:
+                    continue
+                if location_is_targeted(descriptor, target_locations):
+                    slug = self._slugify_location(descriptor)
+                    url  = self._reconstruct_url(external_path, job_url_prefix, slug)
+                    results.append((url, descriptor))
+
+            return results
+
+        except Exception:
+            return []
+
     async def get_listings(self, source_url: str) -> List[JobListing]:
         try:
             base_url, company, board, facets = self._parse_url(source_url)
@@ -152,21 +252,18 @@ class WorkdayExtractor(BaseExtractor):
             "Content-Type": "application/json",
         }
 
-        # For Fidelity-style URLs the job URL needs the full path including
-        # company and board: base_url/recruiting/{company}/{board}/job/...
-        # For standard URLs: base_url + externalPath is sufficient since
-        # externalPath already includes the board prefix.
         parsed_source  = urlparse(source_url)
         is_site_domain = "myworkdaysite.com" in parsed_source.netloc and not re.match(r"[^.]+\.wd\d+\.myworkdaysite", parsed_source.netloc)
         if is_site_domain:
-            # Fidelity-style: base_url/recruiting/{company}/{board}/job/...
             job_url_prefix = f"{base_url}/recruiting/{company}/{board}"
         else:
-            # Standard Workday: base_url/en-US/{board}/job/...
             job_url_prefix = f"{base_url}/en-US/{board}"
+
+        target_locations = get_target_locations()
 
         listings = []
         offset   = 0
+        resolved_job_ids: set[str] = set()  # job IDs already resolved via secondary CXS call
 
         while True:
             payload = {
@@ -190,21 +287,39 @@ class WorkdayExtractor(BaseExtractor):
                 if not title or not external_path:
                     continue
 
-                url = f"{job_url_prefix}{external_path}"
-
-                # "2 Locations" / "3 Locations" — treat as None so
-                # location_is_targeted() lets it through for Pass 2 to resolve
                 loc_text = job.get("locationsText", "")
-                location = None if re.match(r"^\d+ Locations?$", loc_text, re.I) else loc_text or None
+                is_multi = bool(re.match(r"^\d+ Locations?$", loc_text, re.I))
 
-                detail = JobDetail(
-                    title=title,
-                    url=url,
-                    location=location,
-                )
+                if is_multi:
+                    # Resolve all targeted location variants via secondary CXS call.
+                    # Deduplicate — same job ID may appear on multiple pages.
+                    job_id = self._extract_job_id(external_path)
+                    if job_id and job_id not in resolved_job_ids:
+                        variants = await self._resolve_multi_location_urls(
+                            api_url, job_id, external_path, job_url_prefix, target_locations
+                        )
+                        resolved_job_ids.add(job_id)
+                        for url, descriptor in variants:
+                            detail = JobDetail(title=title, url=url, location=descriptor)
+                            self._detail_cache[url] = detail
+                            self._board_cache[url]  = board
+                            self._api_url_cache[url] = api_url
+                            listings.append(JobListing(title=title, url=url))
+                        if variants:
+                            continue
+                    elif job_id in resolved_job_ids:
+                        # Already resolved this job on a previous page — skip entirely
+                        continue
+                    # Fall through if resolution failed — use original URL with None location
+                    location = None
+                else:
+                    location = loc_text or None
+
+                url = f"{job_url_prefix}{external_path}"
+                detail = JobDetail(title=title, url=url, location=location)
                 self._detail_cache[url] = detail
-                # Store board so _fetch_detail_page can construct the HTML URL
-                self._board_cache[url] = board
+                self._board_cache[url]  = board
+                self._api_url_cache[url] = api_url
                 listings.append(JobListing(title=title, url=url))
 
             offset += PAGE_SIZE
@@ -271,22 +386,29 @@ class WorkdayExtractor(BaseExtractor):
 
         description = clean_html(data.get("description", "") or "")
 
-        # Location from JSON-LD address
-        # If jobLocationType is TELECOMMUTE, append "Remote, US" so the
-        # location_is_targeted() remote keywords match even for jobs with a
-        # physical office city listed as the primary location.
+        # Location: prefer the cached descriptor from Pass 1 (already resolved
+        # to a targeted city for multi-location jobs). Fall back to JSON-LD.
         cached   = self._detail_cache.get(listing.url)
-        location = None
-        loc      = data.get("jobLocation", {})
-        if isinstance(loc, dict):
-            addr     = loc.get("address", {})
-            locality = addr.get("addressLocality", "")
-            parts    = [p for p in [locality] if p]
-            location = ", ".join(parts) or None
+        location = cached.location if cached and cached.location else None
+
+        if not location:
+            loc = data.get("jobLocation", {})
+            if isinstance(loc, dict):
+                addr     = loc.get("address", {})
+                locality = addr.get("addressLocality", "")
+                location = locality or None
+            elif isinstance(loc, list):
+                # Multiple jobLocation entries — concatenate all localities
+                localities = []
+                for entry in loc:
+                    if isinstance(entry, dict):
+                        locality = entry.get("address", {}).get("addressLocality", "")
+                        if locality:
+                            localities.append(locality)
+                location = " | ".join(localities) or None
+
         if data.get("jobLocationType") == "TELECOMMUTE":
             location = f"{location} | Remote, US" if location else "Remote, US"
-        if not location and cached:
-            location = cached.location
 
         # Salary from JSON-LD baseSalary (present when company chooses to disclose)
         salary = None

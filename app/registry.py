@@ -21,6 +21,7 @@ from app.extractors.bamboohr import BambooHRExtractor
 from app.extractors.workday import WorkdayExtractor
 from app.extractors.phenom import PhenomExtractor
 from app.extractors.oracle import OracleExtractor
+from app.extractors.netflix import NetflixExtractor
 from app.extractors.generic import GenericExtractor
 
 # Explicit extractor_type string → extractor class
@@ -32,6 +33,7 @@ TYPE_EXTRACTORS: dict[str, type[BaseExtractor]] = {
     "workday":      WorkdayExtractor,
     "phenom":       PhenomExtractor,
     "oracle":       OracleExtractor,
+    "netflix":      NetflixExtractor,
     "generic":      GenericExtractor,
 }
 
@@ -45,6 +47,7 @@ URL_EXTRACTORS: list[tuple[str, type[BaseExtractor]]] = [
     ("workday.com",         WorkdayExtractor),
     ("phenompeople.com",    PhenomExtractor),
     ("oraclecloud.com",     OracleExtractor),
+    ("netflix.net",         NetflixExtractor),
 ]
 
 

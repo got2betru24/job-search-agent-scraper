@@ -79,26 +79,24 @@ async def run_source(source: dict) -> ScrapeResult:
 
         for listing in listings:
 
-            # Title filter
-            if not title_matches_filters(listing.title, filters):
-                result.jobs_filtered += 1
-                logger.debug(f"[{source['company']}] Filtered (title): {listing.title}")
-                continue
-
-            # Role classification
+            # Role classification + target role filter
             role = classify_role(listing.title)
-
-            # Target role filter
             if not role_is_targeted(role, target_roles):
                 result.jobs_filtered += 1
-                logger.debug(f"[{source['company']}] Filtered (role={role}): {listing.title}")
+                logger.info(f"[{source['company']}] FILTERED role={role}: {listing.title!r}")
+                continue
+
+            # Title filter (seniority/domain fit)
+            if not title_matches_filters(listing.title, filters):
+                result.jobs_filtered += 1
+                logger.info(f"[{source['company']}] FILTERED title: {listing.title!r}")
                 continue
 
             # Deduplication
             url_hash = hash_url(listing.url)
             if _job_exists(url_hash):
                 result.jobs_skipped += 1
-                logger.debug(f"[{source['company']}] Skipped (exists): {listing.title}")
+                logger.info(f"[{source['company']}] SKIPPED duplicate: {listing.title!r}")
                 continue
 
             # ── Pass 2 prep: get detail ──────────────────────
@@ -113,19 +111,19 @@ async def run_source(source: dict) -> ScrapeResult:
             location = detail.location if detail else None
             if not location_is_targeted(location, target_locations):
                 result.jobs_filtered += 1
-                logger.debug(f"[{source['company']}] Filtered (location={location}): {listing.title}")
+                logger.info(f"[{source['company']}] FILTERED location={location!r}: {listing.title!r}")
                 continue
 
             # Department filter
             departments = detail.departments if detail else []
             if not department_is_targeted(departments, target_departments):
                 result.jobs_filtered += 1
-                logger.debug(f"[{source['company']}] Filtered (dept={departments}): {listing.title}")
+                logger.info(f"[{source['company']}] FILTERED dept={departments}: {listing.title!r}")
                 continue
 
             scrape_status = _write_job(source, listing.title, listing.url, url_hash, role, detail)
             result.jobs_added += 1
-            logger.info(f"[{source['company']}] Added ({role}, {location}): {listing.title}")
+            logger.info(f"[{source['company']}] ADDED role={role} location={location!r}: {listing.title!r}")
 
             # Queue for Pass 2 if description not yet populated
             if scrape_status == "pending":
@@ -139,7 +137,7 @@ async def run_source(source: dict) -> ScrapeResult:
                     detail = await extractor.get_detail(listing)
                     update_job_detail(url_hash, detail)
                     status = "scraped" if detail and detail.description else "failed"
-                    logger.info(f"[{source['company']}] Pass 2 {status}: {listing.title}")
+                    logger.info(f"[{source['company']}] Pass 2 {status}: {listing.title!r}")
                 except Exception as e:
                     logger.warning(f"[{source['company']}] Pass 2 failed for {listing.url}: {e}")
                     _mark_failed(url_hash, str(e))

@@ -108,6 +108,11 @@ class GreenhouseExtractor(BaseExtractor):
 
         location = " | ".join(location_parts) if location_parts else None
 
+        # Greenhouse returns bare "United States" for remote/unanchored US roles.
+        # Normalize to match TARGET_LOCATIONS remote filter keywords.
+        if location and location.strip() == "United States":
+            location = "Remote - United States"
+
         # Departments
         departments = [
             d.get("name")

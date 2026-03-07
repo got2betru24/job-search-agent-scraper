@@ -21,7 +21,11 @@ venv/
 Thumbs.db
 
 # Logs
-logs/
+logs
+*.log
+
+# Miscellaneous development
+helper.txt
 
 # VS Code dev containers
 # .devcontainer/

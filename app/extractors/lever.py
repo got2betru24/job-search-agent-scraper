@@ -2,21 +2,23 @@
 Lever Extractor
 ---------------
 Lever exposes a fully public JSON API — no scraping needed.
-
 Listing + detail API (all jobs with full content):
   https://api.lever.co/v0/postings/{company}?mode=json
-
 Company slug is extracted from the source URL:
   https://jobs.lever.co/{company}
-
 The listing API returns full job data including description, location, team,
 and commitment — so Pass 1 and Pass 2 are merged via a detail cache.
-
 Note: Lever uses 'team' for what is effectively department.
-"""
 
+Location filtering:
+  If the source URL includes a ?location= param, it is forwarded to the
+  Lever API which filters server-side. Lever location values are exact
+  strings (e.g. "Lehi, UT, US") — the source URL must match what Lever
+  has on file for the company.
+"""
 import re
 from typing import List, Dict
+from urllib.parse import urlparse, parse_qs
 from bs4 import BeautifulSoup
 from app.base import BaseExtractor
 from app.models import JobListing, JobDetail
@@ -38,7 +40,14 @@ class LeverExtractor(BaseExtractor):
         slug    = self._extract_slug(source_url)
         api_url = f"https://api.lever.co/v0/postings/{slug}"
 
-        data = await self.fetch_json(api_url, params={"mode": "json"})
+        # Forward location filter from source URL if present —
+        # Lever filters server-side on exact location string match
+        params: dict = {"mode": "json"}
+        qs = parse_qs(urlparse(source_url).query)
+        if "location" in qs:
+            params["location"] = qs["location"][0]
+
+        data = await self.fetch_json(api_url, params=params)
         if not data or not isinstance(data, list):
             return []
 
@@ -46,10 +55,8 @@ class LeverExtractor(BaseExtractor):
         for job in data:
             title = job.get("text", "").strip()
             url   = job.get("hostedUrl", "").strip()
-
             if not title or not url:
                 continue
-
             detail = self._parse_detail(job)
             self._detail_cache[url] = detail
             listings.append(JobListing(title=title, url=url))
