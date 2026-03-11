@@ -14,7 +14,6 @@ Two-pass flow:
             are skipped in Pass 2.
 """
 
-import json
 import logging
 from typing import Optional
 
@@ -23,7 +22,7 @@ from app.models import ScrapeResult
 from app.registry import get_extractor
 from app.utils import (
     hash_url,
-    title_matches_filters,
+    title_is_blocked,
     classify_role,
     get_target_roles,
     role_is_targeted,
@@ -31,6 +30,7 @@ from app.utils import (
     location_is_targeted,
     get_target_departments,
     department_is_targeted,
+    get_blocked_title_keywords,
     extract_salary,
 )
 
@@ -43,13 +43,12 @@ async def run_source(source: dict) -> ScrapeResult:
     Pass 1: get_listings() → filter → deduplicate → write to DB
     Pass 2: get_detail()   → fetch full description → update DB
     """
-    filters = source.get("filters")
-    if filters and isinstance(filters, str):
-        filters = json.loads(filters)
-
+    blocked_keywords   = get_blocked_title_keywords()
     target_roles       = get_target_roles()
     target_locations   = get_target_locations()
     target_departments = get_target_departments()
+    if blocked_keywords:
+        logger.info(f"Blocked title keywords: {blocked_keywords}")
     if target_roles:
         logger.info(f"Target roles: {target_roles}")
     if target_locations:
@@ -86,10 +85,10 @@ async def run_source(source: dict) -> ScrapeResult:
                 logger.info(f"[{source['company']}] FILTERED role={role}: {listing.title!r}")
                 continue
 
-            # Title filter (seniority/domain fit)
-            if not title_matches_filters(listing.title, filters):
+            # Blocked title keywords (global blocklist from env)
+            if title_is_blocked(listing.title, blocked_keywords):
                 result.jobs_filtered += 1
-                logger.info(f"[{source['company']}] FILTERED title: {listing.title!r}")
+                logger.info(f"[{source['company']}] FILTERED blocked_title: {listing.title!r}")
                 continue
 
             # Deduplication

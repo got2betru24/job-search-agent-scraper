@@ -32,43 +32,93 @@ def title_matches_filters(title: str, filters: Optional[List[str]]) -> bool:
     return False
 
 
-# Role classification rules — ordered from most specific to least.
-# First match wins. Claude will refine this in a future phase.
+# ── Role classification ───────────────────────────────────────────────────
+#
+# Two-stage design:
+#
+#   Stage 1 — Role TYPE (what this function returns)
+#     Determined purely by management structure words in the title.
+#     Domain keywords (ml, ai, data, platform, etc.) are intentionally
+#     absent from PM rules — they caused PM titles like "Sr. Product
+#     Manager, AI/ML" to misclassify as engineering_manager.
+#
+#   Stage 2 — Domain / fit (handled by BLOCKED_TITLE_KEYWORDS in .env)
+#     Negative keyword matching only — no allowlist needed.
+#
+# Priority order (first match wins):
+#   product_manager → tpm → engineering_manager → engineer → None
+#
+# TPM is classified but filtered out by default (not in TARGET_ROLES).
+# Add 'tpm' to TARGET_ROLES in .env to enable.
+
 _ROLE_RULES: List[tuple[str, str]] = [
-    # Engineering Manager / Director — check before IC rules
-    (r"engineering manager",                                                                          "engineering_manager"),
-    (r"(manager|mgr)[,\s].*(engineer|tech|cloud|platform|infrastructure|data|machine learning|ml|ai|analytics|software|intelligence|devinfra|ci.cd|system)",      "engineering_manager"),
-    (r"(sr\.?\s*|senior\s*)(manager|mgr).*(engineer|tech|cloud|platform|infrastructure|data|machine learning|ml|ai|analytics|software|intelligence|devinfra|ci.cd|system)", "engineering_manager"),
-    (r"(engineer|tech|cloud|platform|infrastructure|data|machine learning|ml|ai|analytics|software|intelligence|devinfra|system).*(manager|mgr)",           "engineering_manager"),
-    (r"director.*(engineer|tech|product|data|analytics|platform|cloud|software|architecture|infrastructure|machine learning|ml|ai)",                             "engineering_manager"),
-    (r"vp.*(engineer|tech)",                                                                         "engineering_manager"),
-    (r"head of engineer",                                                                            "engineering_manager"),
 
-    # Product Manager — check before IC rules
-    (r"product manager",                    "product_manager"),
-    (r"(manager|mgr)[,\s].*product",        "product_manager"),
-    (r"product.*(manager|mgr)",             "product_manager"),
-    (r"director.*product",                  "product_manager"),
-    (r"vp.*product",                        "product_manager"),
-    (r"head of product",                    "product_manager"),
+    # ── Product Manager ───────────────────────────────────────────────────
+    # Checked FIRST — "product manager" is unambiguous and must win over
+    # any domain keywords (ai, ml, data) that appear later in the title.
+    (r"product manager",                                            "product_manager"),
+    (r"(manager|mgr)[,\s]+product(?!\s+engineer)",                  "product_manager"),
+    (r"product\s+(manager|mgr|owner|lead)",                         "product_manager"),
+    (r"(director|vp|head)[,\s]+(?:of\s+)?product(?!\s+engineer)",   "product_manager"),
 
-    # Engineer (IC) — everything else engineering/data/analytics
-    (r"engineer",                           "engineer"),
-    (r"developer",                          "engineer"),
-    (r"architect",                          "engineer"),
-    (r"scientist",                          "engineer"),
-    (r"analyst",                            "engineer"),
-    (r"analytics",                          "engineer"),
+    # ── TPM — Technical/Engineering Program Manager ───────────────────────
+    # Checked before EM rules — "program manager" titles must not fall
+    # through to EM rules via domain keywords like ml/ai/infrastructure.
+    (r"technical program manager",                                  "tpm"),
+    (r"(engineering|technical)\s+program\s+manager",                "tpm"),
+    (r"\btpm\b",                                                    "tpm"),
+    (r"program\s+(manager|mgr|mgmt|management)",                   "tpm"),
+
+    # ── Engineering Manager ───────────────────────────────────────────────
+    (r"engineering manager",                                        "engineering_manager"),
+    (r"(manager|mgr)[,\s]+engineering",                             "engineering_manager"),
+
+    # "Manager <level?>, <domain> Engineering" e.g. "Manager II, Machine Learning Engineering"
+    (r"(manager|mgr)\s*(?:[ivx]+|\d+)?\s*[,\s]+\w[\w\s]*engineering", "engineering_manager"),
+
+    # Machine learning manager regardless of what follows (e.g. "Manager II, Machine Learning-Search")
+    (r"(manager|mgr).*machine learning",                                "engineering_manager"),
+
+    # BI/data/analytics managers — domain before manager is an unambiguous technical signal
+    (r"(business intelligence|data|analytics|software).*(manager|mgr)", "engineering_manager"),
+
+    # Senior/Sr Manager — broad, blocklist handles non-engineering domains
+    (r"(sr\.?\s*|senior\s*)(manager|mgr)",                        "engineering_manager"),
+
+    # Director/VP/Head — broad, blocklist handles sales/ops/marketing/etc.
+    (r"(director|vp|head)[,\s]+(?:of\s+)?\w",                    "engineering_manager"),
+
+    # "Product Engineering Manager" / "Manager, Product Engineering" → EM
+    (r"product\s+engineering\s+(manager|mgr)",                      "engineering_manager"),
+    (r"(manager|mgr)[,\s]+product\s+engineering",                   "engineering_manager"),
+
+    # ── Engineer (IC) ─────────────────────────────────────────────────────
+    (r"engineer",                                                   "engineer"),
+    (r"developer",                                                   "engineer"),
+    (r"architect",                                                   "engineer"),
+    (r"scientist",                                                   "engineer"),
+    (r"analyst",                                                     "engineer"),
+    (r"analytics",                                                   "engineer"),
 ]
 
 
 def classify_role(title: str) -> Optional[str]:
     """
-    Classify a job title into one of three role buckets:
-      engineering_manager | product_manager | engineer
+    Classify a job title into one of five role buckets:
+      product_manager | tpm | engineering_manager | engineer | None
+
+    Stage 1 classification — role TYPE only, based on management structure
+    words. Domain keywords (ml, ai, data, platform) are intentionally absent
+    from PM rules to prevent titles like "Sr. Product Manager, AI/ML" from
+    miscategorizing as engineering_manager.
+
+    Stage 2 (domain/fit) is handled downstream by title_is_blocked() and
+    the BLOCKED_TITLE_KEYWORDS env var.
+
+    TPM roles are classified but filtered out by default — add 'tpm' to
+    TARGET_ROLES in .env to enable them.
 
     Returns None if no rule matches.
-    Claude will refine this classification in a future phase.
     """
     title_lower = title.lower()
     for pattern, role in _ROLE_RULES:
@@ -89,20 +139,21 @@ def get_target_roles() -> Optional[List[str]]:
     raw = os.getenv("TARGET_ROLES", "").strip()
     if not raw:
         return None
-    return [r.strip() for r in raw.split(",") if r.strip()]
+    return [r.strip() for r in raw.split("|") if r.strip()]
 
 
 def role_is_targeted(role: Optional[str], target_roles: Optional[List[str]]) -> bool:
     """
     Returns True if the role should be accepted given target_roles config.
     - If target_roles is None, accept everything.
-    - If role is None (unclassified), accept it to avoid silent drops.
+    - If role is None (unclassified), reject it — rules are comprehensive
+      enough that None means genuinely unrecognized, not a gap in coverage.
     - Otherwise only accept if role is in target_roles.
     """
     if not target_roles:
         return True
     if role is None:
-        return True
+        return False
     return role in target_roles
 
 
@@ -131,7 +182,7 @@ def get_target_locations() -> Optional[List[str]]:
     if not raw:
         return None
     # Use | as delimiter to allow commas in location strings (e.g. "remote, us")
-    return [loc.strip().lower() for loc in raw.split("|") if loc.strip()]
+    return [loc.lower() for loc in raw.split("|") if loc]
 
 
 def location_is_targeted(location: Optional[str], target_locations: Optional[List[str]]) -> bool:
@@ -164,7 +215,37 @@ def get_target_departments() -> Optional[List[str]]:
     raw = os.getenv("TARGET_DEPARTMENTS", "").strip()
     if not raw:
         return None
-    return [d.strip().lower() for d in raw.split(",") if d.strip()]
+    return [d.strip().lower() for d in raw.split("|") if d.strip()]
+
+
+def get_blocked_title_keywords() -> Optional[List[str]]:
+    """
+    Read BLOCKED_TITLE_KEYWORDS from environment.
+    Returns None if not set (block nothing).
+    Returns a list of lowercase keyword strings if set.
+
+    Global blocklist applied to all roles — replaces the old per-source
+    JSON_FILTERS allowlist. Only add when a false positive slips through.
+
+    Example .env:
+      BLOCKED_TITLE_KEYWORDS=security|identity|quality|compliance|legal|hr|human resources|facilities|procurement
+    """
+    raw = os.getenv("BLOCKED_TITLE_KEYWORDS", "").strip()
+    if not raw:
+        return None
+    return [kw.strip().lower() for kw in raw.split("|") if kw.strip()]
+
+
+def title_is_blocked(title: str, blocked_keywords: Optional[List[str]]) -> bool:
+    """
+    Returns True if the title contains any blocked keyword.
+    - If blocked_keywords is None or empty, nothing is blocked.
+    - Case-insensitive substring match.
+    """
+    if not blocked_keywords:
+        return False
+    title_lower = title.lower()
+    return any(kw in title_lower for kw in blocked_keywords)
 
 
 def department_is_targeted(departments: Optional[List[str]], target_departments: Optional[List[str]]) -> bool:
